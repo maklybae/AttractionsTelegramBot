@@ -2,9 +2,14 @@
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            Console.WriteLine("Hello, World!");
+            var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
+            DotEnv.Load(dotenv);
+
+            Console.WriteLine(Environment.GetEnvironmentVariable("ACCESS_TOKEN"));
+
+            
         }
     }
 }
