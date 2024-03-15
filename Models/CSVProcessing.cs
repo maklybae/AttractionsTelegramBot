@@ -8,7 +8,7 @@ public class CSVProcessing
 {
     public CSVProcessing() { }
 
-    private static CsvConfiguration s_config = new CsvConfiguration(CultureInfo.InvariantCulture)
+    private readonly static CsvConfiguration s_config = new CsvConfiguration(CultureInfo.InvariantCulture)
     {
         Delimiter = ";",
         Quote = '"',

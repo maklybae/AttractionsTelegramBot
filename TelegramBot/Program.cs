@@ -11,16 +11,15 @@ namespace TelegramBot
 
             Console.WriteLine(Environment.GetEnvironmentVariable("ACCESS_TOKEN"));
             
-            var processor = new CSVProcessing();
-            var data = processor.Read(new FileStream("D:\\Downloads\\attraction-TC (1).csv", FileMode.Open));
-            var fstream = new FileStream("test.csv", FileMode.Create);
-            using (var stream = processor.Write(data))
+            var csvProcessor = new CSVProcessing();
+            var jsonProcessor = new JSONProcessing();
+            var data = jsonProcessor.Read(new FileStream("D:\\VisualStudio\\AttractionsTelegramBot\\TelegramBot\\bin\\Debug\\net6.0\\test.json", FileMode.Open));
+            var fstream = new FileStream("test-new.json", FileMode.Create);
+            using (var stream = jsonProcessor.Write(data))
             {
                 stream.WriteTo(fstream);
             }
             fstream.Close();
-
-            
         }
     }
 }
