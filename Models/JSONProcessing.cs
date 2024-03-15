@@ -23,7 +23,7 @@ public class JSONProcessing
 
     public List<Attraction> Read(Stream inputStream)
     {
-        return JsonSerializer.Deserialize<List<Attraction>>(inputStream, s_serializerOptions);
+        return JsonSerializer.Deserialize<List<Attraction>>(inputStream, s_serializerOptions) ?? new List<Attraction>();
     }
 
 }
