@@ -1,4 +1,6 @@
-﻿namespace TelegramBot
+﻿using Models;
+
+namespace TelegramBot
 {
     internal class Program
     {
@@ -9,6 +11,8 @@
 
             Console.WriteLine(Environment.GetEnvironmentVariable("ACCESS_TOKEN"));
 
+            var processor = new CSVProcessing();
+            processor.Read(new FileStream("D:\\Downloads\\attraction-TC (1).csv", FileMode.Open));
             
         }
     }
