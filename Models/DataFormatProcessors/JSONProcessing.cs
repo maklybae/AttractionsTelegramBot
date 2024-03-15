@@ -1,11 +1,11 @@
 ﻿using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace Models;
+namespace Models.DataFormatProcessors;
 
 public class JSONProcessing
 {
-    private static readonly JsonSerializerOptions s_serializerOptions = new() 
+    private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping

@@ -2,7 +2,7 @@
 using CsvHelper.Configuration;
 using System.Globalization;
 
-namespace Models;
+namespace Models.DataFormatProcessors;
 
 public class CSVProcessing
 {
@@ -34,7 +34,7 @@ public class CSVProcessing
     public List<Attraction> Read(Stream inputStream)
     {
         using var reader = new StreamReader(inputStream);
-        
+
         using var csv = new CsvReader(reader, s_config);
 
         csv.Read();
@@ -50,7 +50,7 @@ public class CSVProcessing
     {
         // TODO: Close stream
         var stream = new MemoryStream();
-        
+
         var writer = new StreamWriter(stream, leaveOpen: true);
         var csv = new CsvWriter(writer, s_config, leaveOpen: true);
 
