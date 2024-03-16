@@ -1,8 +1,4 @@
-﻿using DataManager;
-using Models;
-using Models.DataFormatProcessors;
-using Telegram.Bot;
-using Telegram.Bot.Polling;
+﻿using Telegram.Bot.Polling;
 
 namespace TelegramBot
 {
@@ -21,24 +17,13 @@ namespace TelegramBot
             ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
 
             // Creating bot
-            var bot = new TelegramBotClient(Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}");
-            var handlerManager = new BotHandlerManager();
 
-            bot = new TelegramBotClient(botToken);
-            bot.StartReceiving(handlerManager.HandleUpdateAsync,
-                               handlerManager.HandleErrorAsync,
-                               receiverOptions,
-                               cts.Token);
+            var botManager = new BotManager(botToken);
+            var messagesProcessor = new MessagesProcessor(botManager);
 
-            var botUser = await bot.GetMeAsync();
 
-            using (DatabaseContext db = new DatabaseContext())
-            {
-                db.SaveChanges();
-            }
 
             while (true) { }
-            // Thread.Sleep(1000000000);
         }
     }
 }
