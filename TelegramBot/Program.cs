@@ -1,26 +1,36 @@
 ﻿using Models;
 using Models.DataFormatProcessors;
+using Telegram.Bot;
+using Telegram.Bot.Polling;
 
 namespace TelegramBot
 {
     internal class Program
     {
-        static void Main()
+        async static Task Main()
         {
+            // Importing access token
             var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
             DotEnv.Load(dotenv);
+            var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
 
-            Console.WriteLine(Environment.GetEnvironmentVariable("ACCESS_TOKEN"));
-            
-            var csvProcessor = new CSVProcessing();
-            var jsonProcessor = new JSONProcessing();
-            var data = jsonProcessor.Read(new FileStream("D:\\VisualStudio\\AttractionsTelegramBot\\TelegramBot\\bin\\Debug\\net6.0\\test.json", FileMode.Open));
-            var fstream = new FileStream("test-new.json", FileMode.Create);
-            using (var stream = jsonProcessor.Write(data))
-            {
-                stream.WriteTo(fstream);
-            }
-            fstream.Close();
+            // Preparing for creating bot
+            using CancellationTokenSource cts = new();
+            ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
+
+            // Creating bot
+            var bot = new TelegramBotClient(Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}");
+            var handlerManager = new BotHandlerManager();
+
+            bot = new TelegramBotClient(botToken);
+            bot.StartReceiving(handlerManager.HandleUpdateAsync,
+                               handlerManager.HandleErrorAsync,
+                               receiverOptions,
+                               cts.Token);
+
+            var botUser = await bot.GetMeAsync();
+
+            Console.ReadLine();
         }
     }
 }
