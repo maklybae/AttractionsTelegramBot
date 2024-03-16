@@ -1,4 +1,5 @@
 ﻿using Telegram.Bot.Polling;
+using TelegramBot.UpdateProcessors;
 
 namespace TelegramBot
 {
@@ -17,8 +18,7 @@ namespace TelegramBot
 
             var botManager = new BotManager(botToken);
             var messagesProcessor = new MessagesProcessor(botManager);
-
-
+            var callbackQueryProcessor = new CallbackQueryProcessor(botManager);
 
             while (true) { }
         }

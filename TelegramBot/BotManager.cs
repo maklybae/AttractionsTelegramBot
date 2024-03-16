@@ -3,6 +3,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
+using TelegramBot.EventArguments;
 
 namespace TelegramBot;
 
@@ -11,6 +12,7 @@ internal class BotManager
     private readonly TelegramBotClient _client;
 
     public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+    public event EventHandler<CallbackQueryReceivedEventArgs>? CallbackQueryReceived;
 
     public BotManager(string accessToken)
     {
@@ -41,7 +43,7 @@ internal class BotManager
         var handler = update.Type switch
         {
             UpdateType.Message => OnMessageReceive(update.Message!),
-            // UpdateType.CallbackQuery => Bot_OnCallbackQuery(botClient, update.CallbackQuery!),
+            UpdateType.CallbackQuery => OnCallbackQuery( update.CallbackQuery!),
             _ => UnknownUpdateHandlerAsync(update)
         };
 
@@ -53,6 +55,13 @@ internal class BotManager
         {
             await HandlePollingErrorAsync(botClient, exception, cancellationToken);
         }
+    }
+
+    private Task OnCallbackQuery(CallbackQuery callbackQuery)
+    {
+        Console.WriteLine("Callback query received");
+        CallbackQueryReceived?.Invoke(this, new CallbackQueryReceivedEventArgs(callbackQuery));
+        return Task.CompletedTask;        
     }
 
     private Task OnMessageReceive(Message message)

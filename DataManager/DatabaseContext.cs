@@ -23,6 +23,7 @@ namespace DataManager
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ChatFile>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            modelBuilder.Entity<Selection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             base.OnModelCreating(modelBuilder);
         }
     }

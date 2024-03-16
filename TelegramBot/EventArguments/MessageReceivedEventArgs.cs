@@ -1,8 +1,8 @@
 ﻿using Telegram.Bot.Types;
 
-namespace TelegramBot;
+namespace TelegramBot.EventArguments;
 
-internal class MessageReceivedEventArgs : EventArgs
+internal class MessageReceivedEventArgs : EventArgs 
 {
     private readonly Message _message;
 

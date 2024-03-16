@@ -1,8 +1,9 @@
 ﻿using Telegram.Bot;
 using DataManager.Models;
 using DataManager;
+using TelegramBot.EventArguments;
 
-namespace TelegramBot;
+namespace TelegramBot.UpdateProcessors;
 
 internal class MessagesProcessor
 {
@@ -22,23 +23,39 @@ internal class MessagesProcessor
         var chatId = message.Chat.Id;
         using var db = new DatabaseContext();
 
+        // Check for chat existing and creating if it is the first call.
         Chat chat = db.Chats.Where(s => s.ChatId == chatId).FirstOrDefault()!;
         if (chat == null)
         {
             chat = new Chat()
             {
-                 ChatId = chatId,
-                 Status = (int)ChatStatus.WAIT_COMMAND
+                ChatId = chatId,
+                Status = (int)ChatStatus.WAIT_COMMAND
             };
             await db.Chats.AddAsync(chat);
             Console.WriteLine("hello");
         }
         await Console.Out.WriteLineAsync($"Message \"{messageText}\" in processing");
 
-        if (string.IsNullOrEmpty(messageText))
-            return;
-
         Task<Telegram.Bot.Types.Message>? tskSendMessage = null;
+
+        // Check for file message
+        if (message.Document != null && chat.Status == (int)ChatStatus.WAIT_FILE_SELECTION_LOADING)
+        {
+            var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First();
+            var file = new ChatFile() { ChatFileId = message.Document.FileId, Chat = chat, IsSource = true };
+            db.Files.Add(file);
+            selection.SourceFile = file;
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        // Processing text messages
+        if (string.IsNullOrEmpty(messageText))
+        {
+            return;
+        }
+
         if (messageText.StartsWith('/'))
         {
             // Command
@@ -50,6 +67,7 @@ internal class MessagesProcessor
                         chatId: chatId,
                         text: @"Welcome to telegram bot!"
                         );
+                    chat.Status = (int)ChatStatus.WAIT_COMMAND;
                     break;
                 case "/selection":
 
@@ -58,6 +76,8 @@ internal class MessagesProcessor
                         text: @"Choose file from the list (recently processed and sample file are available):",
                         replyMarkup: _keyboardsManager.GenerateInlineKeyboardFiles(chat)
                         );
+                    chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_OPTION;
+
 
                     break;
                 default:
