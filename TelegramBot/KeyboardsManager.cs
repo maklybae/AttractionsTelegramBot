@@ -1,4 +1,5 @@
 ﻿using DataManager;
+using DataManager.Mapping;
 using DataManager.Models;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -39,12 +40,30 @@ internal class KeyboardsManager
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup GenerateFieldsKeyboard()
-    {
-        return new(new[]
+    public InlineKeyboardMarkup GenerateFieldsKeyboard() =>
+        new InlineKeyboardMarkup(new[]
         {
-            new[] { InlineKeyboardButton.WithCallbackData("Process"), },
-            new[] { InlineKeyboardButton.WithCallbackData("") }
-        })
-    }
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData(DataField.Name.Title, DataField.Name.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.Photo.Title, DataField.Photo.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.AdmArea.Title, DataField.AdmArea.Id.ToString())
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData(DataField.District.Title, DataField.District.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.Location.Title, DataField.Location.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.RegistrationNumber.Title, DataField.RegistrationNumber.Id.ToString())
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData(DataField.State.Title, DataField.State.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.LocationType.Title, DataField.LocationType.Id.ToString()),
+                InlineKeyboardButton.WithCallbackData(DataField.GlobalId.Title, DataField.GlobalId.Id.ToString())
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("Run Action", "RUN")
+            }
+        });
 }

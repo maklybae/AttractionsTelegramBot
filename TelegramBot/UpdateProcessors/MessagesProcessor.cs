@@ -2,6 +2,7 @@
 using DataManager.Models;
 using DataManager;
 using TelegramBot.EventArguments;
+using DataManager.Mapping;
 
 namespace TelegramBot.UpdateProcessors;
 
@@ -33,7 +34,6 @@ internal class MessagesProcessor
                 Status = (int)ChatStatus.WAIT_COMMAND
             };
             await db.Chats.AddAsync(chat);
-            Console.WriteLine("hello");
         }
         await Console.Out.WriteLineAsync($"Message \"{messageText}\" in processing");
 
@@ -46,6 +46,8 @@ internal class MessagesProcessor
             var file = new ChatFile() { ChatFileId = message.Document.FileId, Chat = chat, IsSource = true };
             db.Files.Add(file);
             selection.SourceFile = file;
+            chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
+            tskSendMessage = _botManager.Client.SendTextMessageAsync(chatId, $"Select fields for selecting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
             await db.SaveChangesAsync();
             return;
         }

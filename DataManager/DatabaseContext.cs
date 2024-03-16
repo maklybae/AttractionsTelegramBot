@@ -12,7 +12,7 @@ namespace DataManager
 
         public DatabaseContext()
         {
-            Database.EnsureCreated();
+            //Database.EnsureCreated();
         }
 
 

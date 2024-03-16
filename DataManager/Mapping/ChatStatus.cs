@@ -1,4 +1,4 @@
-﻿namespace DataManager;
+﻿namespace DataManager.Mapping;
 
 public enum ChatStatus
 {

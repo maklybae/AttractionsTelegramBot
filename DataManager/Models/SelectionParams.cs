@@ -15,6 +15,6 @@ public class SelectionParams
     public int Field { get; set; }
 
     [Column("value")]
-    public string Value { get; set; }
+    public string? Value { get; set; }
 }
 
