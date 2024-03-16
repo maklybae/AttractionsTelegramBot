@@ -10,10 +10,10 @@ namespace TelegramBot
     {
         async static Task Main()
         {
-            // Importing access token
-            //var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
-            //DotEnv.Load(dotenv);
-            //var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
+           // Importing access token
+           //var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
+           // DotEnv.Load(dotenv);
+           // var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
             var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
 
             // Preparing for creating bot
