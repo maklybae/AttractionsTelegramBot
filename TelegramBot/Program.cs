@@ -1,4 +1,5 @@
-﻿using Models;
+﻿using DataManager;
+using Models;
 using Models.DataFormatProcessors;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -10,9 +11,10 @@ namespace TelegramBot
         async static Task Main()
         {
             // Importing access token
-            var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
-            DotEnv.Load(dotenv);
-            var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
+            //var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
+            //DotEnv.Load(dotenv);
+            //var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
+            var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
 
             // Preparing for creating bot
             using CancellationTokenSource cts = new();
@@ -30,7 +32,13 @@ namespace TelegramBot
 
             var botUser = await bot.GetMeAsync();
 
-            Console.ReadLine();
+            using (DatabaseContext db = new DatabaseContext())
+            {
+                db.SaveChanges();
+            }
+
+            while (true) { }
+            // Thread.Sleep(1000000000);
         }
     }
 }
