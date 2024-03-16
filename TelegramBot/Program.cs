@@ -12,9 +12,6 @@ namespace TelegramBot
            // var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
             var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
 
-            // Preparing for creating bot
-            using CancellationTokenSource cts = new();
-            ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
 
             // Creating bot
 

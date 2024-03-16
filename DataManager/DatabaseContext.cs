@@ -15,7 +15,15 @@ namespace DataManager
             Database.EnsureCreated();
         }
 
+
+        // TODO: поменять для использования на localhost
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseNpgsql(@"Server=db;Username=postgres;Password=postgres;Database=postgres");
+            => optionsBuilder.UseNpgsql(@"Server=localhost;Username=postgres;Password=postgres;Database=postgres");
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ChatFile>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }

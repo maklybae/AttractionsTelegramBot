@@ -1,13 +1,13 @@
 ﻿using Telegram.Bot;
 using DataManager.Models;
 using DataManager;
-using Telegram.Bot.Types;
 
 namespace TelegramBot;
 
 internal class MessagesProcessor
 {
     private readonly BotManager _botManager;
+    private readonly KeyboardsManager _keyboardsManager = new KeyboardsManager();
 
     public MessagesProcessor(BotManager botManager)
     {
@@ -20,21 +20,25 @@ internal class MessagesProcessor
         var message = args.ReceivedMessage;
         var messageText = message.Text;
         var chatId = message.Chat.Id;
-        var db = new DatabaseContext();
+        using var db = new DatabaseContext();
 
-        Chat chat = db.Chats.Where(s => s.ChatId == chatId).FirstOrDefault() ?? new Chat() 
-        { 
-            ChatId = chatId, Status = (int)ChatStatus.WAIT_COMMAND 
-        };        
-
-        var tskSavetoDb = db.SaveChangesAsync();
-
-        Console.WriteLine($"Message \"{messageText}\" in processing");
+        Chat chat = db.Chats.Where(s => s.ChatId == chatId).FirstOrDefault()!;
+        if (chat == null)
+        {
+            chat = new Chat()
+            {
+                 ChatId = chatId,
+                 Status = (int)ChatStatus.WAIT_COMMAND
+            };
+            await db.Chats.AddAsync(chat);
+            Console.WriteLine("hello");
+        }
+        await Console.Out.WriteLineAsync($"Message \"{messageText}\" in processing");
 
         if (string.IsNullOrEmpty(messageText))
             return;
 
-        Task<Message>? tskSendMessage = null;
+        Task<Telegram.Bot.Types.Message>? tskSendMessage = null;
         if (messageText.StartsWith('/'))
         {
             // Command
@@ -44,12 +48,25 @@ internal class MessagesProcessor
                 case "/help":
                     tskSendMessage = _botManager.Client.SendTextMessageAsync(
                         chatId: chatId,
-                        text: @"Welcome to telegram bot!");
+                        text: @"Welcome to telegram bot!"
+                        );
+                    break;
+                case "/selection":
+
+                    tskSendMessage = _botManager.Client.SendTextMessageAsync(
+                        chatId: chatId,
+                        text: @"Choose file from the list (recently processed and sample file are available):",
+                        replyMarkup: _keyboardsManager.GenerateInlineKeyboardFiles(chat)
+                        );
+
+                    break;
+                default:
+                    await Console.Out.WriteLineAsync($"Unknown message \"{messageText}\"");
                     break;
             }
         }
 
-        await tskSavetoDb;
+        await db.SaveChangesAsync();
         if (tskSendMessage != null)
         {
             await tskSendMessage;

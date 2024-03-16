@@ -20,6 +20,8 @@ internal class BotManager
 
     public TelegramBotClient Client => _client;
 
+
+
     private void StartReceiving()
     {
         using var cts = new CancellationTokenSource();
