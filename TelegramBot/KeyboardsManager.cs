@@ -66,4 +66,11 @@ internal class KeyboardsManager
                 InlineKeyboardButton.WithCallbackData("Run Action", "RUN")
             }
         });
+
+    public InlineKeyboardMarkup GenerateFileFormatKeyboard() =>
+        new InlineKeyboardMarkup(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("JSON", "JSON"),
+            InlineKeyboardButton.WithCallbackData("CSV", "CSV"),
+        });
 }
