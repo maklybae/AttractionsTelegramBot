@@ -32,17 +32,17 @@ public class Attraction
         [Name("geodata_center")]string geodataCenter,
         [Name("geoarea")] string geoarea)
     {
-        Name = name;
-        Photo = photo;
-        AdmArea = admArea;
-        District = district;
-        Location = location;
-        RegistrationNumber = registrationNumber;
-        State = state;
-        LocationType = locationType;
-        GlobalId = globalId;
-        GeodataCenter = geodataCenter;
-        GeoArea = geoarea;
+        _name = name;
+        _photo = photo;
+        _admArea = admArea;
+        _district = district;
+        _location = location;
+        _registrationNumber = registrationNumber;
+        _state = state;
+        _locationType = locationType;
+        _globalId = globalId;
+        _geodataCenter = geodataCenter;
+        _geoarea = geoarea;
     }
 
 

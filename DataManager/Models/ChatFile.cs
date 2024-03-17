@@ -6,6 +6,9 @@ namespace DataManager.Models;
 public class ChatFile
 {
     [Column("file_id"), Key]
+    public int FileId { get; set; }
+
+    [Column("telegram_file_id")]
     public string ChatFileId { get; set; }
 
     [Column("chat_id")]

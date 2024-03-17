@@ -3,18 +3,21 @@ using DataManager.Mapping;
 using DataManager.Models;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
+using Models.DataFormatProcessors;
+using Models;
 
 namespace TelegramBot;
 
 internal class StateProcessor
 {
     private readonly BotManager _botManager;
+    private readonly FileManager _fileManager;
     private readonly KeyboardsManager _keyboardsManager = new();
-    private readonly FileManager _fileManager = new();
 
     public StateProcessor(BotManager botManager)
     {
         _botManager = botManager;
+        _fileManager = new FileManager(botManager);
     }
 
     public async Task ProcessRequest(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery = null)
@@ -30,8 +33,8 @@ internal class StateProcessor
 
         if (await TryCommand(message, callbackQuery))
             return;
-        //try
-        //{
+        try
+        {
             switch (currentState)
             {
                 case ChatStatus.WAIT_COMMAND:
@@ -44,12 +47,15 @@ internal class StateProcessor
                     await ChooseSelectionFields(message, callbackQuery); break;
                 case ChatStatus.CHOOSE_SELECTION_PARAMS:
                     await ChooseSelectionParams(message, callbackQuery); break;
+                case ChatStatus.WAIT_SELECTION_SAVING_TYPE:
+                    await WaitSelectionFileType(message, callbackQuery); break;
+
             }
-        //}
-        //catch (Exception e)
-        //{
-        //    await Console.Out.WriteLineAsync($"Error during state processing occured: {e.Message}");
-        //}
+        }
+        catch (Exception e)
+        {
+            await Console.Out.WriteLineAsync($"Error during state processing occured: {e.Message}");
+        }
     }
 
     private async Task<bool> TryCommand(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
@@ -121,7 +127,7 @@ internal class StateProcessor
                 break;
             default:
                 var sourceFile = db.Files.Where(s => s.ChatFileId == callbackQuery.Data).FirstOrDefault()!;
-                selection.SourceFile = sourceFile;
+                selection.File = sourceFile;
                 await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, $"Selected revision: {sourceFile.Description}", replyMarkup: InlineKeyboardMarkup.Empty());
                 chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
                 break;
@@ -136,12 +142,13 @@ internal class StateProcessor
         {
             throw new ArgumentException("Not a correct answer", nameof(message));
         }
-        var fileId = await _fileManager.DownloadSourceFile(message);
+        var fileId = await _fileManager.DownloadAndValidateSourceFileToDatabase(message);
 
         using var db = new DatabaseContext();
         var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First();
-        selection.SourceFile = db.Files.Where(s => s.ChatFileId == fileId).First();
-        await db.SaveChangesAsync();
+        var file = db.Files.First(s => s.FileId == fileId);
+        selection.File = file;
+        db.SaveChanges();
 
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
@@ -217,7 +224,40 @@ internal class StateProcessor
         }
         else
         {
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, "Hooray");
+            await _botManager.Client.SendTextMessageAsync(chat.ChatId, "Select saving option for your request:", replyMarkup: _keyboardsManager.GenerateFileFormatKeyboard());
+            chat.Status = (int)ChatStatus.WAIT_SELECTION_SAVING_TYPE;
+            await db.SaveChangesAsync();
         }
+    }
+
+    private async Task WaitSelectionFileType(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
+    {
+        if (callbackQuery == null)
+        {
+            throw new ArgumentException("Not a correct answer", nameof(callbackQuery));
+        }
+
+        using var db = new DatabaseContext();
+        var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
+        var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
+        var recievedData = callbackQuery.Data;
+        var selectionParams = db.SelectionParams
+                    .Where(s => s.Selection == selection)
+                    .Select(s => new { s.Field, s.Value })
+                    .AsEnumerable()
+                    .Select(s => new ValueTuple<string, string>(DataField.GetDataField(s.Field).Title, s.Value!));
+        MemoryStream outputStream = new();
+        switch (recievedData)
+        {
+            case "JSON":
+                outputStream = new JSONProcessing().Write(new Selector(await _fileManager.DownladAttractions(selection.File!.ChatFileId), selectionParams).Select());
+                await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.json"));
+                break;
+            case "CSV":
+                outputStream = new CSVProcessing().Write(new Selector(await _fileManager.DownladAttractions(selection.File!.ChatFileId), selectionParams).Select());
+                await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.csv"));
+                break;
+        }   
+
     }
 }

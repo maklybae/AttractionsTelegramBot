@@ -11,8 +11,8 @@ public class Selection
     [Column("chat_id")]
     public Chat Chat { get; set; }
 
-    [Column("source_file")]
-    public ChatFile? SourceFile { get; set; }
+    [Column("file")]
+    public ChatFile? File { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }

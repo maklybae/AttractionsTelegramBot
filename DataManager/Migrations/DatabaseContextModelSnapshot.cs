@@ -44,9 +44,17 @@ namespace DataManager.Migrations
 
             modelBuilder.Entity("DataManager.Models.ChatFile", b =>
                 {
-                    b.Property<string>("ChatFileId")
-                        .HasColumnType("text")
+                    b.Property<int>("FileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
                         .HasColumnName("file_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileId"));
+
+                    b.Property<string>("ChatFileId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("telegram_file_id");
 
                     b.Property<long>("ChatId")
                         .HasColumnType("bigint");
@@ -65,7 +73,7 @@ namespace DataManager.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_source");
 
-                    b.HasKey("ChatFileId");
+                    b.HasKey("FileId");
 
                     b.HasIndex("ChatId");
 
@@ -90,14 +98,14 @@ namespace DataManager.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("SourceFileChatFileId")
-                        .HasColumnType("text");
+                    b.Property<int?>("FileId")
+                        .HasColumnType("integer");
 
                     b.HasKey("SelectionId");
 
                     b.HasIndex("ChatId");
 
-                    b.HasIndex("SourceFileChatFileId");
+                    b.HasIndex("FileId");
 
                     b.ToTable("Selections");
                 });
@@ -148,13 +156,13 @@ namespace DataManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataManager.Models.ChatFile", "SourceFile")
+                    b.HasOne("DataManager.Models.ChatFile", "File")
                         .WithMany()
-                        .HasForeignKey("SourceFileChatFileId");
+                        .HasForeignKey("FileId");
 
                     b.Navigation("Chat");
 
-                    b.Navigation("SourceFile");
+                    b.Navigation("File");
                 });
 
             modelBuilder.Entity("DataManager.Models.SelectionParams", b =>

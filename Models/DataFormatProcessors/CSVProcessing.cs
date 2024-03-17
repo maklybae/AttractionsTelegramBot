@@ -33,6 +33,7 @@ public class CSVProcessing
 
     public List<Attraction> Read(Stream inputStream)
     {
+        inputStream.Position = 0;
         using var reader = new StreamReader(inputStream);
 
         using var csv = new CsvReader(reader, s_config);

@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataManager.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,7 +18,7 @@ namespace DataManager.Migrations
                 {
                     chat_id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    status = table.Column<int>(type: "integer", nullable: false)
+                    status = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -29,7 +29,9 @@ namespace DataManager.Migrations
                 name: "Files",
                 columns: table => new
                 {
-                    file_id = table.Column<string>(type: "text", nullable: false),
+                    file_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    telegram_file_id = table.Column<string>(type: "text", nullable: false),
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
                     description = table.Column<string>(type: "text", nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
@@ -53,7 +55,7 @@ namespace DataManager.Migrations
                     selection_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
-                    SourceFileChatFileId = table.Column<string>(type: "text", nullable: true),
+                    FileId = table.Column<int>(type: "integer", nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
@@ -66,8 +68,8 @@ namespace DataManager.Migrations
                         principalColumn: "chat_id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Selections_Files_SourceFileChatFileId",
-                        column: x => x.SourceFileChatFileId,
+                        name: "FK_Selections_Files_FileId",
+                        column: x => x.FileId,
                         principalTable: "Files",
                         principalColumn: "file_id");
                 });
@@ -109,9 +111,9 @@ namespace DataManager.Migrations
                 column: "ChatId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Selections_SourceFileChatFileId",
+                name: "IX_Selections_FileId",
                 table: "Selections",
-                column: "SourceFileChatFileId");
+                column: "FileId");
         }
 
         /// <inheritdoc />
