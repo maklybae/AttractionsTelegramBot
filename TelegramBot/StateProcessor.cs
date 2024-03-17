@@ -126,10 +126,11 @@ internal class StateProcessor
                 await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Load .csv or .json file: ", replyMarkup: InlineKeyboardMarkup.Empty());
                 break;
             default:
-                var sourceFile = db.Files.Where(s => s.ChatFileId == callbackQuery.Data).FirstOrDefault()!;
-                selection.File = sourceFile;
+                var sourceFile = db.Files.Where(s => s.FileId == int.Parse(callbackQuery.Data!)).FirstOrDefault()!;
+                selection.IdentNumberFile = sourceFile.FileId;
                 await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, $"Selected revision: {sourceFile.Description}", replyMarkup: InlineKeyboardMarkup.Empty());
                 chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
+                await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Select fields for selecting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
                 break;
         }
         await db.Selections.AddAsync(selection);
@@ -146,8 +147,7 @@ internal class StateProcessor
 
         using var db = new DatabaseContext();
         var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First();
-        var file = db.Files.First(s => s.FileId == fileId);
-        selection.File = file;
+        selection.IdentNumberFile = fileId;
         db.SaveChanges();
 
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
@@ -247,17 +247,36 @@ internal class StateProcessor
                     .AsEnumerable()
                     .Select(s => new ValueTuple<string, string>(DataField.GetDataField(s.Field).Title, s.Value!));
         MemoryStream outputStream = new();
+        var chatFileId = db.Files.First(s => s.FileId == selection.IdentNumberFile).ChatFileId;
+
+        var result = new Selector(await _fileManager.DownladAttractions(chatFileId), selectionParams).Select();
+        if (!result.Any())
+        {
+            await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "No results by this request!", replyMarkup: InlineKeyboardMarkup.Empty());
+            return;
+        }
+
+        Telegram.Bot.Types.Message sendedMessage = new();
         switch (recievedData)
         {
             case "JSON":
-                outputStream = new JSONProcessing().Write(new Selector(await _fileManager.DownladAttractions(selection.File!.ChatFileId), selectionParams).Select());
-                await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.json"));
+                outputStream = new JSONProcessing().Write(result);
+                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.json"));
                 break;
             case "CSV":
-                outputStream = new CSVProcessing().Write(new Selector(await _fileManager.DownladAttractions(selection.File!.ChatFileId), selectionParams).Select());
-                await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.csv"));
+                outputStream = new CSVProcessing().Write(result);
+                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.csv"));
                 break;
         }   
+        await db.Files.AddAsync(new ChatFile()
+        {
+            Chat = chat,
+            ChatFileId = sendedMessage.Document!.FileId,
+            Description = $"Selected: {string.Join(';', db.SelectionParams.Where(s => s.Selection == selection).Select(s => DataField.GetDataField(s.Field).Title))}",
+            IsSource = false
+        });
+        await db.SaveChangesAsync();
+        await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Here you are!", replyMarkup: InlineKeyboardMarkup.Empty());
 
     }
 }

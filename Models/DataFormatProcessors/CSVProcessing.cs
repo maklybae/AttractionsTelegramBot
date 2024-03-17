@@ -62,6 +62,7 @@ public class CSVProcessing
         writer.Dispose();
         csv.Dispose();
 
+        stream.Position = 0;
         return stream;
     }
 }

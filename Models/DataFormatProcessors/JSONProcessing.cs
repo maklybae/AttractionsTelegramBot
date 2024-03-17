@@ -18,6 +18,7 @@ public class JSONProcessing
         var stream = new MemoryStream();
 
         JsonSerializer.Serialize(stream, records, s_serializerOptions);
+        stream.Position = 0;
         return stream;
     }
 

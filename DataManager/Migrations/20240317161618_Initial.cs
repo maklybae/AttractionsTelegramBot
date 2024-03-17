@@ -55,7 +55,7 @@ namespace DataManager.Migrations
                     selection_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
-                    FileId = table.Column<int>(type: "integer", nullable: true),
+                    file = table.Column<int>(type: "integer", nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
@@ -67,11 +67,6 @@ namespace DataManager.Migrations
                         principalTable: "Chats",
                         principalColumn: "chat_id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Selections_Files_FileId",
-                        column: x => x.FileId,
-                        principalTable: "Files",
-                        principalColumn: "file_id");
                 });
 
             migrationBuilder.CreateTable(
@@ -109,24 +104,19 @@ namespace DataManager.Migrations
                 name: "IX_Selections_ChatId",
                 table: "Selections",
                 column: "ChatId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Selections_FileId",
-                table: "Selections",
-                column: "FileId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Files");
+
+            migrationBuilder.DropTable(
                 name: "SelectionParams");
 
             migrationBuilder.DropTable(
                 name: "Selections");
-
-            migrationBuilder.DropTable(
-                name: "Files");
 
             migrationBuilder.DropTable(
                 name: "Chats");

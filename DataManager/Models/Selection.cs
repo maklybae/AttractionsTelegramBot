@@ -12,7 +12,7 @@ public class Selection
     public Chat Chat { get; set; }
 
     [Column("file")]
-    public ChatFile? File { get; set; }
+    public int? IdentNumberFile { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }

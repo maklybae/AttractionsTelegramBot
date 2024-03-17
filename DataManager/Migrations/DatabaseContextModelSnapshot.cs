@@ -98,14 +98,13 @@ namespace DataManager.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int?>("FileId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("IdentNumberFile")
+                        .HasColumnType("integer")
+                        .HasColumnName("file");
 
                     b.HasKey("SelectionId");
 
                     b.HasIndex("ChatId");
-
-                    b.HasIndex("FileId");
 
                     b.ToTable("Selections");
                 });
@@ -156,13 +155,7 @@ namespace DataManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataManager.Models.ChatFile", "File")
-                        .WithMany()
-                        .HasForeignKey("FileId");
-
                     b.Navigation("Chat");
-
-                    b.Navigation("File");
                 });
 
             modelBuilder.Entity("DataManager.Models.SelectionParams", b =>

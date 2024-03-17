@@ -12,14 +12,13 @@ internal class KeyboardsManager
         InlineKeyboardMarkup inlineKeyboardMarkup;
 
         using var db = new DatabaseContext();
-        db.Files.Select(s => s).ToList();
         var querySet = db.Files.Where(s => s.Chat == chat && !s.IsSource).
             OrderByDescending(e => e.CreatedAt).
             Take(3);
         if (querySet.Count() > 0)
         {
             var recentlyRow = querySet.
-                Select(file => InlineKeyboardButton.WithCallbackData(file.Description, file.ChatFileId));
+                Select(file => InlineKeyboardButton.WithCallbackData(file.Description!, file.FileId.ToString()));
 
             inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
