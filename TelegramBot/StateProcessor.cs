@@ -1,8 +1,6 @@
 ﻿using DataManager;
 using DataManager.Mapping;
 using DataManager.Models;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Bot;
 using Models.DataFormatProcessors;
 using Models;
 
@@ -10,14 +8,13 @@ namespace TelegramBot;
 
 internal class StateProcessor
 {
-    private readonly BotManager _botManager;
     private readonly FileManager _fileManager;
-    private readonly KeyboardsManager _keyboardsManager = new();
+    private readonly DialogManager _dialogManager;
 
     public StateProcessor(BotManager botManager)
     {
-        _botManager = botManager;
         _fileManager = new FileManager(botManager);
+        _dialogManager = new DialogManager(botManager);
     }
 
     public async Task ProcessRequest(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery = null)
@@ -94,30 +91,23 @@ internal class StateProcessor
         switch (messageText)
         {
             case "/start":
+                await _dialogManager.SendWelcomeMessage(chat.ChatId);
+                chat.Status = (int)ChatStatus.WAIT_COMMAND;
+                break;
             case "/help":
-                await _botManager.Client.SendTextMessageAsync(
-                    chatId: chat.ChatId,
-                    text: @"Welcome to telegram bot!"
-                    );
+                await _dialogManager.SendHelpMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_COMMAND;
                 break;
             case "/selection":
-                await _botManager.Client.SendTextMessageAsync(
-                    chatId: chat.ChatId,
-                    text: @"Choose file from the list (recently processed and sample file are available):",
-                    replyMarkup: _keyboardsManager.GenerateInlineKeyboardFiles(chat)
-                    );
+                await _dialogManager.SendSelectionFileOptionMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_OPTION;
                 break;
             case "/sorting":
-                await _botManager.Client.SendTextMessageAsync(
-                    chatId: chat.ChatId,
-                    text: @"Choose file from the list (recently processed and sample file are available):",
-                    replyMarkup: _keyboardsManager.GenerateInlineKeyboardFiles(chat)
-                    );
+                await _dialogManager.SendSortingFileOptionMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_FILE_SORTING_OPTION;
                 break;
             default:
+                await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
                 await Console.Out.WriteLineAsync($"Unknown message \"{messageText}\"");
                 break;
         }
@@ -127,29 +117,32 @@ internal class StateProcessor
     private async Task WaitFileSelectionOption(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
-        {
-            throw new ArgumentException("Not a correct answer", nameof(callbackQuery));
-        }
+            await _dialogManager.SendUnknownCommandMessage(message.Chat.Id);
 
+        // Create new selection.
         using var db = new DatabaseContext();
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         var selection = new Selection() { Chat = chat };
-        switch (callbackQuery.Data)
+
+        // File loading option.
+        switch (callbackQuery!.Data)
         {
             case "SAMPLE":
                 break;
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_LOADING;
-                await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Load .csv or .json file: ", replyMarkup: InlineKeyboardMarkup.Empty());
+                await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
                 break;
             default:
                 var sourceFile = db.Files.Where(s => s.FileId == int.Parse(callbackQuery.Data!)).FirstOrDefault()!;
                 selection.IdentNumberFile = sourceFile.FileId;
-                await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, $"Selected revision: {sourceFile.Description}", replyMarkup: InlineKeyboardMarkup.Empty());
+                await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, description: sourceFile.Description ?? "", isNewFile: false);
                 chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
-                await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Select fields for selecting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
+                await _dialogManager.SendFieldsKeyboard(chat.ChatId);
                 break;
         }
+
+        // Saving new selection to db.
         await db.Selections.AddAsync(selection);
         await db.SaveChangesAsync();
     }
@@ -157,11 +150,12 @@ internal class StateProcessor
     private async Task WaitFileSelectionLoading(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (message.Document == null)
-        {
-            throw new ArgumentException("Not a correct answer", nameof(message));
-        }
+            throw new ArgumentException("Not a file", nameof(message));
+
+        // Downloading and validating the file.
         var fileId = await _fileManager.DownloadAndValidateSourceFileToDatabase(message);
 
+        // Saving the source file to specific selection.
         using var db = new DatabaseContext();
         var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First();
         selection.IdentNumberFile = fileId;
@@ -169,7 +163,7 @@ internal class StateProcessor
 
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
-        await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Select fields for selecting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
+        await _dialogManager.SendFieldsKeyboard(chat.ChatId);
         await db.SaveChangesAsync();
         return;
     }
@@ -187,34 +181,34 @@ internal class StateProcessor
         var recievedData = callbackQuery.Data;
         if (recievedData == "RUN")
         {
-            // Запуск выбора значений.
+            // Run up selection parameters look up.
             if (!db.SelectionParams.Where(s => s.Selection == selection).Any())
             {
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Nothing was selected for selection. Choose any field");
+                await _dialogManager.AnswerNothingSelectedCallbackQuery(callbackQuery.Id);
                 return;
             }
-            await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId,
-                $"These fields will be required to select data: {string.Join("; ", db.SelectionParams.Where(s => s.Selection == selection).Select(s => DataField.GetDataField(s.Field)))}",
-                replyMarkup: InlineKeyboardMarkup.Empty());
+            await _dialogManager.EditListedSelectedFieldsMessage(chat.ChatId, message.MessageId,
+                db.SelectionParams.Where(s => s.Selection == selection).Select(s => DataField.GetDataField(s.Field).Title));
+
             var requestedField = DataField.GetDataField(db.SelectionParams.Where(s => s.Selection == selection && s.Value == null).First().Field);
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Eneter value for the field \"{requestedField}\"");
+            await _dialogManager.SendSelectingValueMessage(chat.ChatId, requestedField.Title);
             chat.Status = (int)ChatStatus.CHOOSE_SELECTION_PARAMS;
         }
         else
         {
-            // Выбор поля
+            // Field selection.
             int receivedField = int.Parse(recievedData!);
             if (!db.SelectionParams.Where(s => s.Selection == selection && s.Field == receivedField).Any())
             {
                 var selectionParam = new SelectionParams() { Selection = selection, Field = receivedField };
                 db.SelectionParams.Add(selectionParam);
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Field {DataField.GetDataField(receivedField)} marked as selection filter");
+                await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField);
             }
             else
             {
                 var param = db.SelectionParams.Where(s => s.Selection == selection && s.Field == receivedField).First();
                 db.SelectionParams.Remove(param);
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Field {DataField.GetDataField(receivedField)} unmarked as selection filter");
+                await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField, isUnmarked: true);
             }
         }
         await db.SaveChangesAsync();
@@ -237,11 +231,11 @@ internal class StateProcessor
         if (db.SelectionParams.Where(s => s.Selection == selection && s.Value == null).Any())
         {
             var requestedField = DataField.GetDataField(db.SelectionParams.Where(s => s.Selection == selection && s.Value == null).First().Field);
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Eneter value for the field \"{requestedField}\"");
+            await _dialogManager.SendSelectingValueMessage(chat.ChatId, requestedField.Title);
         }
         else
         {
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, "Select saving option for your request:", replyMarkup: _keyboardsManager.GenerateFileFormatKeyboard());
+            await _dialogManager.SendDownloadProcessedMessage(chat.ChatId);
             chat.Status = (int)ChatStatus.WAIT_SELECTION_SAVING_TYPE;
             await db.SaveChangesAsync();
         }
@@ -269,7 +263,7 @@ internal class StateProcessor
         var result = new Selector(await _fileManager.DownladAttractions(chatFileId), selectionParams).Select();
         if (!result.Any())
         {
-            await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "No results by this request!", replyMarkup: InlineKeyboardMarkup.Empty());
+            await _dialogManager.EditNoResultsMessage(chat.ChatId, message.MessageId);
             return;
         }
 
@@ -278,11 +272,11 @@ internal class StateProcessor
         {
             case "JSON":
                 outputStream = new JSONProcessing().Write(result);
-                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.json"));
+                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.json");
                 break;
             case "CSV":
                 outputStream = new CSVProcessing().Write(result);
-                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.csv"));
+                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.csv");
                 break;
         }
         await db.Files.AddAsync(new ChatFile()
@@ -293,7 +287,7 @@ internal class StateProcessor
             IsSource = false
         });
         await db.SaveChangesAsync();
-        await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Here you are!", replyMarkup: InlineKeyboardMarkup.Empty());
+        await _dialogManager.EditSuccessMessage(chat.ChatId, message.MessageId);
 
     }
 
@@ -317,14 +311,15 @@ internal class StateProcessor
                 break;
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SORTING_LOADING;
-                await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Load .csv or .json file: ", replyMarkup: InlineKeyboardMarkup.Empty());
+                await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
                 break;
             default:
                 var sourceFile = db.Files.Where(s => s.FileId == int.Parse(callbackQuery.Data!)).FirstOrDefault()!;
                 sorting.IdentNumberFile = sourceFile.FileId;
-                await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, $"Selected revision: {sourceFile.Description}", replyMarkup: InlineKeyboardMarkup.Empty());
+
+                await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, description: sourceFile.Description ?? "", isNewFile: false);
                 chat.Status = (int)ChatStatus.CHOOSE_SORTING_FIELDS;
-                await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Select fields for sorting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
+                await _dialogManager.SendFieldsKeyboard(chat.ChatId);
                 break;
         }
         await db.Sortings.AddAsync(sorting);
@@ -346,7 +341,7 @@ internal class StateProcessor
 
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         chat.Status = (int)ChatStatus.CHOOSE_SORTING_FIELDS;
-        await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Select fields for sorting data", replyMarkup: _keyboardsManager.GenerateFieldsKeyboard());
+        await _dialogManager.SendFieldsKeyboard(chat.ChatId);
         await db.SaveChangesAsync();
         return;
     }
@@ -368,14 +363,14 @@ internal class StateProcessor
             // Запуск выбора значений.
             if (!db.SortingParams.Where(s => s.Sorting == sorting).Any())
             {
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Nothing was selected for selection. Choose any field");
+                await _dialogManager.AnswerNothingSelectedCallbackQuery(callbackQuery.Id);
                 return;
             }
-            await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId,
-                $"These fields will be required to sort data: {string.Join("; ", db.SortingParams.Where(s => s.Sorting == sorting).Select(s => DataField.GetDataField(s.Field)))}",
-                replyMarkup: InlineKeyboardMarkup.Empty());
+            await _dialogManager.EditListedSelectedFieldsMessage(chat.ChatId, message.MessageId,
+                db.SortingParams.Where(s => s.Sorting == sorting).Select(s => DataField.GetDataField(s.Field).Title));
+
             var requestedField = DataField.GetDataField(db.SortingParams.Where(s => s.Sorting == sorting && s.IsDescending == null).First().Field);
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Eneter opiton for the field \"{requestedField}\"", replyMarkup: _keyboardsManager.GenerateSortingOrderKeyboard());
+            await _dialogManager.SendSortingOptionMessage(chat.ChatId, requestedField.Title);
             chat.Status = (int)ChatStatus.CHOOSE_SORTING_PARAMS;
         }
         else
@@ -386,13 +381,13 @@ internal class StateProcessor
             {
                 var sortingParam = new SortingParams() { Sorting = sorting, Field = receivedField };
                 db.SortingParams.Add(sortingParam);
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Field {DataField.GetDataField(receivedField)} marked as sorting filter");
+                await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField);
             }
             else
             {
                 var param = db.SortingParams.Where(s => s.Sorting == sorting && s.Field == receivedField).First();
                 db.SortingParams.Remove(param);
-                await _botManager.Client.AnswerCallbackQueryAsync(callbackQuery.Id, $"Field {DataField.GetDataField(receivedField)} unmarked as sorting filter");
+                await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField, true);
             }
         }
         await db.SaveChangesAsync();
@@ -409,9 +404,7 @@ internal class StateProcessor
         var sorting = db.Sortings.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
         var param = db.SortingParams.Where(s => s.Sorting == sorting && s.IsDescending == null).First();
         param.IsDescending = callbackQuery.Data == "d" ? true : false;
-        await _botManager.Client.EditMessageTextAsync(chat.ChatId,
-            message.MessageId,
-            $"Field {DataField.GetDataField(param.Field)} will be sorted" + (param.IsDescending == false ? "ascending" : "descending"));
+        await _dialogManager.EditSortingOptionMessage(chat.ChatId, message.MessageId, DataField.GetDataField(param.Field).Title, param.IsDescending ?? false);
 
         await db.SaveChangesAsync();
 
@@ -419,11 +412,11 @@ internal class StateProcessor
         if (db.SortingParams.Where(s => s.Sorting == sorting && s.IsDescending == null).Any())
         {
             var requestedField = DataField.GetDataField(db.SortingParams.Where(s => s.Sorting == sorting && s.IsDescending == null).First().Field);
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, $"Eneter opiton for the field \"{requestedField}\"", replyMarkup: _keyboardsManager.GenerateSortingOrderKeyboard());
+            await _dialogManager.SendSortingOptionMessage(chat.ChatId, requestedField.Title);
         }
         else
         {
-            await _botManager.Client.SendTextMessageAsync(chat.ChatId, "Select saving option for your request:", replyMarkup: _keyboardsManager.GenerateFileFormatKeyboard());
+            await _dialogManager.SendDownloadProcessedMessage(chat.ChatId);
             chat.Status = (int)ChatStatus.WAIT_SORTING_SAVING_TYPE;
             await db.SaveChangesAsync();
         }
@@ -456,11 +449,11 @@ internal class StateProcessor
         {
             case "JSON":
                 outputStream = new JSONProcessing().Write(result);
-                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.json"));
+                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.json");
                 break;
             case "CSV":
                 outputStream = new CSVProcessing().Write(result);
-                sendedMessage = await _botManager.Client.SendDocumentAsync(chat.ChatId, Telegram.Bot.Types.InputFile.FromStream(outputStream, "filename.csv"));
+                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.csv");
                 break;
         }
         await db.Files.AddAsync(new ChatFile()
@@ -471,6 +464,6 @@ internal class StateProcessor
             IsSource = false
         });
         await db.SaveChangesAsync();
-        await _botManager.Client.EditMessageTextAsync(chat.ChatId, message.MessageId, "Here you are!", replyMarkup: InlineKeyboardMarkup.Empty());
+        await _dialogManager.EditSuccessMessage(chat.ChatId, message.MessageId);
     }
 }

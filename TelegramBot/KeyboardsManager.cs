@@ -7,12 +7,12 @@ namespace TelegramBot;
 
 internal class KeyboardsManager
 {
-    public InlineKeyboardMarkup GenerateInlineKeyboardFiles(Chat chat)
+    public InlineKeyboardMarkup GenerateInlineKeyboardFiles(long chatId)
     {
         InlineKeyboardMarkup inlineKeyboardMarkup;
 
         using var db = new DatabaseContext();
-        var querySet = db.Files.Where(s => s.Chat == chat && !s.IsSource).
+        var querySet = db.Files.Where(s => s.Chat.ChatId == chatId && !s.IsSource).
             OrderByDescending(e => e.CreatedAt).
             Take(3);
         if (querySet.Count() > 0)

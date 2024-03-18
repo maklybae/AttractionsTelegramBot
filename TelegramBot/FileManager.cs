@@ -4,6 +4,7 @@ using Telegram.Bot;
 using Models.DataFormatProcessors;
 using Models;
 using System.IO;
+using Telegram.Bot.Types;
 
 namespace TelegramBot
 {
@@ -47,5 +48,8 @@ namespace TelegramBot
             else
                 return new CSVProcessing().Read(stream);
         }
+
+        public async Task<Message> SendProcessedDocument(long chatId, Stream outputStream, string fileName) =>
+            await _botManager.Client.SendDocumentAsync(chatId, InputFile.FromStream(outputStream, fileName));
     }
 }
