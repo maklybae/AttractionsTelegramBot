@@ -16,4 +16,7 @@ public class Selection
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("is_json")]
+    public bool? IsJson { get; set; }
 }

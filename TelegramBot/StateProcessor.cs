@@ -35,7 +35,9 @@ internal class StateProcessor
             switch (currentState)
             {
                 case ChatStatus.WAIT_COMMAND:
-                    break;
+                    await WaitCommand(message, callbackQuery); break;
+
+                // Selection related.
                 case ChatStatus.WAIT_FILE_SELECTION_OPTION:
                     await WaitFileSelectionOption(message, callbackQuery); break;
                 case ChatStatus.WAIT_FILE_SELECTION_LOADING:
@@ -46,6 +48,10 @@ internal class StateProcessor
                     await ChooseSelectionParams(message, callbackQuery); break;
                 case ChatStatus.WAIT_SELECTION_SAVING_TYPE:
                     await WaitSelectionFileType(message, callbackQuery); break;
+                case ChatStatus.WAIT_SELECTION_FILENAME:
+                    await WaitSelectionFileName(message, callbackQuery); break;
+
+                // Sorting related.
                 case ChatStatus.WAIT_FILE_SORTING_OPTION:
                     await WaitFileSortingOption(message, callbackQuery); break;
                 case ChatStatus.WAIT_FILE_SORTING_LOADING:
@@ -56,10 +62,21 @@ internal class StateProcessor
                     await ChooseSortingParams(message, callbackQuery); break;
                 case ChatStatus.WAIT_SORTING_SAVING_TYPE:
                     await WaitSortingSavingType(message, callbackQuery); break;
+                case ChatStatus.WAIT_SORTING_FILENAME:
+                    await WaitSortingFilename(message, callbackQuery); break;
             }
+        }
+        catch (ArgumentException)
+        {
+            await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
+        }
+        catch (FormatException)
+        {
+            await _dialogManager.SendFormatExceptionMessage(chat.ChatId);
         }
         catch (Exception e)
         {
+            await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
             await Console.Out.WriteLineAsync($"Error during state processing occured: {e.Message}");
         }
     }
@@ -127,8 +144,8 @@ internal class StateProcessor
         // File loading option.
         switch (callbackQuery!.Data)
         {
-            case "SAMPLE":
-                break;
+            //case "SAMPLE":
+            //    break;
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_LOADING;
                 await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
@@ -252,6 +269,24 @@ internal class StateProcessor
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
         var recievedData = callbackQuery.Data;
+
+        selection.IsJson = recievedData == "JSON";
+        chat.Status = (int)ChatStatus.WAIT_SELECTION_FILENAME;
+        await db.SaveChangesAsync();
+
+        await _dialogManager.EditFileFormatMessage(chat.ChatId, message.MessageId, selection.IsJson ?? false);
+        await _dialogManager.SendFileNameMessage(chat.ChatId);
+    }
+
+    private async Task WaitSelectionFileName(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
+    {
+        if (message.Text == null)
+            throw new ArgumentException("Not s correct message");
+
+        using var db = new DatabaseContext();
+        var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
+        var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
+
         var selectionParams = db.SelectionParams
                     .Where(s => s.Selection == selection)
                     .Select(s => new { s.Field, s.Value })
@@ -263,22 +298,22 @@ internal class StateProcessor
         var result = new Selector(await _fileManager.DownladAttractions(chatFileId), selectionParams).Select();
         if (!result.Any())
         {
-            await _dialogManager.EditNoResultsMessage(chat.ChatId, message.MessageId);
+            await _dialogManager.SendNoResultsMessage(chat.ChatId);
             return;
         }
 
-        Telegram.Bot.Types.Message sendedMessage = new();
-        switch (recievedData)
+        Telegram.Bot.Types.Message sendedMessage;
+        if (selection.IsJson ?? false)
         {
-            case "JSON":
-                outputStream = new JSONProcessing().Write(result);
-                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.json");
-                break;
-            case "CSV":
-                outputStream = new CSVProcessing().Write(result);
-                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.csv");
-                break;
+            outputStream = new JSONProcessing().Write(result);
+            sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, $"{message.Text}.json");
         }
+        else
+        {
+            outputStream = new CSVProcessing().Write(result);
+            sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, $"{message.Text}.csv");
+        }
+
         await db.Files.AddAsync(new ChatFile()
         {
             Chat = chat,
@@ -286,9 +321,11 @@ internal class StateProcessor
             Description = $"Selected: {string.Join(';', db.SelectionParams.Where(s => s.Selection == selection).Select(s => DataField.GetDataField(s.Field).Title))}",
             IsSource = false
         });
-        await db.SaveChangesAsync();
-        await _dialogManager.EditSuccessMessage(chat.ChatId, message.MessageId);
 
+        chat.Status = (int)ChatStatus.WAIT_COMMAND;
+        await db.SaveChangesAsync();
+        await _dialogManager.SendSuccessMessage(chat.ChatId);
+        await _dialogManager.SendHelpMessage(chat.ChatId);
     }
 
     //
@@ -307,8 +344,8 @@ internal class StateProcessor
         var sorting = new Sorting() { Chat = chat };
         switch (callbackQuery.Data)
         {
-            case "SAMPLE":
-                break;
+            //case "SAMPLE":
+            //    break;
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SORTING_LOADING;
                 await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
@@ -433,8 +470,26 @@ internal class StateProcessor
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         var sorting = db.Sortings.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
         var recievedData = callbackQuery.Data;
+
+        sorting.IsJson = recievedData == "JSON";
+        chat.Status = (int)ChatStatus.WAIT_SORTING_FILENAME;
+        await db.SaveChangesAsync();
+
+        await _dialogManager.EditFileFormatMessage(chat.ChatId, message.MessageId, sorting.IsJson ?? false);
+        await _dialogManager.SendFileNameMessage(chat.ChatId);
+    }
+
+    private async Task WaitSortingFilename(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
+    {
+        if (message.Text == null)
+            throw new ArgumentException("Not s correct message");
+
+        using var db = new DatabaseContext();
+        var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
+        var sorting = db.Sortings.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
+
         var sortingParams = db.SortingParams
-                    .OrderBy(s => s.CreatedAt)
+        .OrderBy(s => s.CreatedAt)
                     .Where(s => s.Sorting == sorting)
                     .Select(s => new { s.Field, s.IsDescending })
                     .AsEnumerable()
@@ -444,17 +499,16 @@ internal class StateProcessor
 
         var result = new Sorter(await _fileManager.DownladAttractions(chatFileId), sortingParams).Sort();
 
-        Telegram.Bot.Types.Message sendedMessage = new();
-        switch (recievedData)
+        Telegram.Bot.Types.Message sendedMessage;
+        if (sorting.IsJson ?? false)
         {
-            case "JSON":
-                outputStream = new JSONProcessing().Write(result);
-                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.json");
-                break;
-            case "CSV":
-                outputStream = new CSVProcessing().Write(result);
-                sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, "filename.csv");
-                break;
+            outputStream = new JSONProcessing().Write(result);
+            sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, $"{message.Text}.json");
+        }
+        else
+        {
+            outputStream = new CSVProcessing().Write(result);
+            sendedMessage = await _fileManager.SendProcessedDocument(chat.ChatId, outputStream, $"{message.Text}.csv");
         }
         await db.Files.AddAsync(new ChatFile()
         {
@@ -463,7 +517,10 @@ internal class StateProcessor
             Description = $"Sorted: {string.Join(';', db.SortingParams.Where(s => s.Sorting == sorting).Select(s => DataField.GetDataField(s.Field).Title))}",
             IsSource = false
         });
+
+        chat.Status = (int)ChatStatus.WAIT_COMMAND;
         await db.SaveChangesAsync();
-        await _dialogManager.EditSuccessMessage(chat.ChatId, message.MessageId);
+        await _dialogManager.SendSuccessMessage(chat.ChatId);
+        await _dialogManager.SendHelpMessage(chat.ChatId);
     }
 }

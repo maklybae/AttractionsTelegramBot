@@ -5,6 +5,8 @@ using Models.DataFormatProcessors;
 using Models;
 using System.IO;
 using Telegram.Bot.Types;
+using System.Text.Json;
+using CsvHelper;
 
 namespace TelegramBot
 {
@@ -23,13 +25,20 @@ namespace TelegramBot
                 using MemoryStream stream = new MemoryStream();
                 var fileInfo = await _botManager.Client.GetInfoAndDownloadFileAsync(fileId: message.Document!.FileId, stream);
 
-                var validator = new DataFormatValidator();
-                if (Path.GetExtension(fileInfo.FilePath)?.ToLower() == ".json")
-                    validator.ValidateJson(stream);
-                else if (Path.GetExtension(fileInfo.FilePath)?.ToLower() == ".csv")
-                    validator.ValidateCsv(stream);
-                else
-                    throw new ArgumentException("Not a correct file extension");
+                try
+                {
+                    var validator = new DataFormatValidator();
+                    if (Path.GetExtension(fileInfo.FilePath)?.ToLower() == ".json")
+                        validator.ValidateJson(stream);
+                    else if (Path.GetExtension(fileInfo.FilePath)?.ToLower() == ".csv")
+                        validator.ValidateCsv(stream);
+                    else
+                        throw new FormatException("Not a correct file extension");
+                }
+                catch (Exception ex) when (ex is JsonException || ex is FormatException || ex is NotSupportedException || ex is BadDataException || ex is ReaderException)
+                {
+                    throw new FormatException("Incorrect file format");
+                }
 
                 var file = new ChatFile() { ChatFileId = message.Document!.FileId, Chat = chat, IsSource = true };
                 await db.Files.AddAsync(file);

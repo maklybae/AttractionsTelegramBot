@@ -114,19 +114,17 @@ You can choose:
             "💿 Select saving option for your request: ",
             replyMarkup: _keyboardsManager.GenerateFileFormatKeyboard());
 
-    public Task EditNoResultsMessage(long chatId, int messageId) =>
-        _botManager.Client.EditMessageTextAsync(
+    public Task SendNoResultsMessage(long chatId) =>
+        _botManager.Client.SendTextMessageAsync(
             chatId,
-            messageId,
-            "🥲 No results for this request!",
-            replyMarkup: InlineKeyboardMarkup.Empty());
+            "🥲 No results for this request!"
+            );
 
-    public Task EditSuccessMessage(long chatId, int messageId) =>
-        _botManager.Client.EditMessageTextAsync(
+    public Task SendSuccessMessage(long chatId) =>
+        _botManager.Client.SendTextMessageAsync(
             chatId,
-            messageId,
-            @"🎉 Here is your processed file 🎉",
-            replyMarkup: InlineKeyboardMarkup.Empty());
+            @"🎉 Here is your processed file 🎉"
+            );
 
     public Task SendSortingFileOptionMessage(long chatId) =>
         _botManager.Client.SendTextMessageAsync(
@@ -137,8 +135,6 @@ You can choose:
 
 You can choose:
 🕧 Recently processed files (don't worry, if it's your first request)
-
-💽 Sample file
 
 💾 File from your device
 ",
@@ -157,5 +153,23 @@ You can choose:
             messageId,
             $"Field {field} will be sorted " + (isDescending ? "descending⬇️" : "ascending⬆️"),
             replyMarkup: InlineKeyboardMarkup.Empty()
+            );
+
+    public Task EditFileFormatMessage(long chatId, int messageId, bool isJson) =>
+        _botManager.Client.EditMessageTextAsync(
+            chatId,
+            messageId,
+            string.Format(@"💿 Chosen {0} file format", isJson ? ".JSON" : ".CSV"),
+            replyMarkup: InlineKeyboardMarkup.Empty()
+            );
+
+    public Task SendFileNameMessage(long chatId) =>
+        _botManager.Client.SendTextMessageAsync(
+            chatId,
+            @"🗣️ Enter the desired name of your file (without extension, it will be added automatically):");
+    public Task SendFormatExceptionMessage(long chatId) =>
+        _botManager.Client.SendTextMessageAsync(
+            chatId,
+            @"🥶 Wrong file format"
             );
 }

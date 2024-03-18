@@ -1,4 +1,7 @@
-﻿using Models;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Models;
 using Models.DataFormatProcessors;
 using System.Threading.Channels;
 using Telegram.Bot.Polling;
@@ -13,8 +16,7 @@ namespace TelegramBot
             // Importing access token
             //var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
             // DotEnv.Load(dotenv);
-            // var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
-
+            // var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN
 
 
             var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
@@ -26,8 +28,7 @@ namespace TelegramBot
             var messagesProcessor = new MessagesProcessor(botManager);
             var callbackQueryProcessor = new CallbackQueryProcessor(botManager);
 
-            while (true) { }
-
+            Console.ReadLine();
 
             //FileStream fs = new FileStream("D:\\Downloads\\attraction-TC (1).csv", FileMode.Open);
             //var res = new CSVProcessing().Read(fs);

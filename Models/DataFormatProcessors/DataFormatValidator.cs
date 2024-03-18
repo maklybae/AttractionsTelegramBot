@@ -7,6 +7,5 @@
 
         public void ValidateCsv(Stream stream) =>
             new CSVProcessing().Read(stream);
-
     }
 }
