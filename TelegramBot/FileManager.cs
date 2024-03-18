@@ -47,7 +47,5 @@ namespace TelegramBot
             else
                 return new CSVProcessing().Read(stream);
         }
-
-        //public async Task SendProcessedFile()
     }
 }

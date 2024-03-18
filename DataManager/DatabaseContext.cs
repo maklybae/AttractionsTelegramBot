@@ -25,6 +25,7 @@ namespace DataManager
             modelBuilder.Entity<ChatFile>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             modelBuilder.Entity<Selection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             modelBuilder.Entity<Sorting>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            modelBuilder.Entity<SortingParams>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             modelBuilder.Entity<Chat>().Property(e => e.Status).HasDefaultValue((int)ChatStatus.WAIT_COMMAND);
             base.OnModelCreating(modelBuilder);
         }

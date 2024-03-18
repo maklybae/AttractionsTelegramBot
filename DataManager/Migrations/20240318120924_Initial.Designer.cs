@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataManager.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20240317161618_Initial")]
+    [Migration("20240318120924_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -139,6 +139,68 @@ namespace DataManager.Migrations
                     b.ToTable("SelectionParams");
                 });
 
+            modelBuilder.Entity("DataManager.Models.Sorting", b =>
+                {
+                    b.Property<int>("SortingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("sorting_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SortingId"));
+
+                    b.Property<long>("ChatId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int?>("IdentNumberFile")
+                        .HasColumnType("integer")
+                        .HasColumnName("file");
+
+                    b.HasKey("SortingId");
+
+                    b.HasIndex("ChatId");
+
+                    b.ToTable("Sortings");
+                });
+
+            modelBuilder.Entity("DataManager.Models.SortingParams", b =>
+                {
+                    b.Property<int>("SortingParamsId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("sorting_params_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SortingParamsId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("Field")
+                        .HasColumnType("integer")
+                        .HasColumnName("field");
+
+                    b.Property<bool?>("IsDescending")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_descending");
+
+                    b.Property<int>("SortingId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("SortingParamsId");
+
+                    b.HasIndex("SortingId");
+
+                    b.ToTable("SortingParams");
+                });
+
             modelBuilder.Entity("DataManager.Models.ChatFile", b =>
                 {
                     b.HasOne("DataManager.Models.Chat", "Chat")
@@ -170,6 +232,28 @@ namespace DataManager.Migrations
                         .IsRequired();
 
                     b.Navigation("Selection");
+                });
+
+            modelBuilder.Entity("DataManager.Models.Sorting", b =>
+                {
+                    b.HasOne("DataManager.Models.Chat", "Chat")
+                        .WithMany()
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+                });
+
+            modelBuilder.Entity("DataManager.Models.SortingParams", b =>
+                {
+                    b.HasOne("DataManager.Models.Sorting", "Sorting")
+                        .WithMany()
+                        .HasForeignKey("SortingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sorting");
                 });
 #pragma warning restore 612, 618
         }

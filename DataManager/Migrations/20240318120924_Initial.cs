@@ -70,6 +70,27 @@ namespace DataManager.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Sortings",
+                columns: table => new
+                {
+                    sorting_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ChatId = table.Column<long>(type: "bigint", nullable: false),
+                    file = table.Column<int>(type: "integer", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Sortings", x => x.sorting_id);
+                    table.ForeignKey(
+                        name: "FK_Sortings_Chats_ChatId",
+                        column: x => x.ChatId,
+                        principalTable: "Chats",
+                        principalColumn: "chat_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SelectionParams",
                 columns: table => new
                 {
@@ -90,6 +111,28 @@ namespace DataManager.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "SortingParams",
+                columns: table => new
+                {
+                    sorting_params_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SortingId = table.Column<int>(type: "integer", nullable: false),
+                    field = table.Column<int>(type: "integer", nullable: false),
+                    is_descending = table.Column<bool>(type: "boolean", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SortingParams", x => x.sorting_params_id);
+                    table.ForeignKey(
+                        name: "FK_SortingParams_Sortings_SortingId",
+                        column: x => x.SortingId,
+                        principalTable: "Sortings",
+                        principalColumn: "sorting_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Files_ChatId",
                 table: "Files",
@@ -104,6 +147,16 @@ namespace DataManager.Migrations
                 name: "IX_Selections_ChatId",
                 table: "Selections",
                 column: "ChatId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SortingParams_SortingId",
+                table: "SortingParams",
+                column: "SortingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Sortings_ChatId",
+                table: "Sortings",
+                column: "ChatId");
         }
 
         /// <inheritdoc />
@@ -116,7 +169,13 @@ namespace DataManager.Migrations
                 name: "SelectionParams");
 
             migrationBuilder.DropTable(
+                name: "SortingParams");
+
+            migrationBuilder.DropTable(
                 name: "Selections");
+
+            migrationBuilder.DropTable(
+                name: "Sortings");
 
             migrationBuilder.DropTable(
                 name: "Chats");

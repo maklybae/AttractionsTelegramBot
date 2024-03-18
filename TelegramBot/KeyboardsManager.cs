@@ -72,4 +72,12 @@ internal class KeyboardsManager
             InlineKeyboardButton.WithCallbackData("JSON", "JSON"),
             InlineKeyboardButton.WithCallbackData("CSV", "CSV"),
         });
+
+    public InlineKeyboardMarkup GenerateSortingOrderKeyboard() =>
+        new InlineKeyboardMarkup(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("Asccending", "a"),
+            InlineKeyboardButton.WithCallbackData("Descending", "d")
+        });
+
 }
