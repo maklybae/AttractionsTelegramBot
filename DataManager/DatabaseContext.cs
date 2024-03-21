@@ -47,8 +47,14 @@ public class DatabaseContext : DbContext
 
 
     // TODO: поменять для использования на localhost
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseNpgsql(@"Server=localhost;Username=postgres;Password=postgres;Database=postgres");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.UseNpgsql(@"Server=localhost;Username=postgres;Password=postgres;Database=postgres");
+
+    //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //{
+    //    optionsBuilder.UseSqlite("Data Source=helloapp.db");
+    //}
+
 
     /// <summary>
     /// Configures model behavior during database creation.

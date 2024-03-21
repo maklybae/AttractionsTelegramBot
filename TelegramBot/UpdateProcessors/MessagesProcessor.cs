@@ -31,9 +31,7 @@ internal class MessagesProcessor
                 await db.Chats.AddAsync(chat);
                 await db.SaveChangesAsync();
             }
-        }
-        await Console.Out.WriteLineAsync($"Message \"{messageText}\" in processing");
-        
+        }        
         await _stateProcessor.ProcessRequest(message, null);
     }
 }

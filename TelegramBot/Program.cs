@@ -10,9 +10,7 @@ namespace TelegramBot
         private static void Main()
         {
             // Importing access token
-            var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
-            DotEnv.Load(dotenv);
-            var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
+            var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
 
             // Logging init
             Log.Logger = new LoggerConfiguration()
@@ -37,10 +35,16 @@ namespace TelegramBot
             var callbackQueryProcessor = new CallbackQueryProcessor(botManager, stateProcessor);
             logger!.LogInformation("Messages and CallbackQueeries processsors created");
 
-            Console.ReadLine();
-            
-            serviceProvider.Dispose();
-            logger!.LogInformation("Resources disposed");
+            // Keep app's running
+            try
+            {
+                while (true) { }
+            }
+            finally 
+            {
+                serviceProvider.Dispose();
+                logger!.LogInformation("Resources disposed");
+            }            
         }
     }
 }
