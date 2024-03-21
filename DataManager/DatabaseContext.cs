@@ -48,8 +48,11 @@ public class DatabaseContext : DbContext
         Database.EnsureCreated();
     }
 
+    //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+    //    optionsBuilder.UseNpgsql(@"Server=db;Username=postgres;Password=postgres;Database=postgres");
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
-        optionsBuilder.UseNpgsql(@"Server=db;Username=postgres;Password=postgres;Database=postgres");
+        optionsBuilder.UseSqlite("Data Source=telebot.db");
 
     /// <summary>
     /// Configures model behavior during database creation.
@@ -57,10 +60,10 @@ public class DatabaseContext : DbContext
     /// <param name="modelBuilder">The model builder used for configuring the database model.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ChatFile>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<Selection>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<Sorting>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        modelBuilder.Entity<SortingParams>().Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<ChatFile>().Property(e => e.CreatedAt).HasDefaultValueSql("date('now')");
+        modelBuilder.Entity<Selection>().Property(e => e.CreatedAt).HasDefaultValueSql("date('now')");
+        modelBuilder.Entity<Sorting>().Property(e => e.CreatedAt).HasDefaultValueSql("date('now')");
+        modelBuilder.Entity<SortingParams>().Property(e => e.CreatedAt).HasDefaultValueSql("date('now')");
         modelBuilder.Entity<Chat>().Property(e => e.Status).HasDefaultValue((int)ChatStatus.WAIT_COMMAND);
         base.OnModelCreating(modelBuilder);
     }
