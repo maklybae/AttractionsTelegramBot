@@ -11,7 +11,7 @@ namespace TelegramBot
     internal class Program
     {
 
-        private const string BotToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
+        private const string BotToken = "{BOT_TOKEN}";
 
         /// <summary>
         /// Main method that initializes and runs the Telegram bot application.

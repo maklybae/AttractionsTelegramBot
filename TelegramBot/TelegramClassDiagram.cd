@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="TelegramBot.BotManager">
+    <Position X="3.5" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAQAAEAEAAAAAAAAAAAACAAAAACAAAAAFACAQ=</HashCode>
+      <FileName>BotManager.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TelegramBot.Program">
+    <Position X="1.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAA=</HashCode>
+      <FileName>Program.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TelegramBot.StateProcessor" Collapsed="true">
+    <Position X="5.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAgIAEQEAACAAQIAABAAAAAgJAgAACBAAAAACAAAEAA=</HashCode>
+      <FileName>StateProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TelegramBot.UpdateProcessors.CallbackQueryProcessor">
+    <Position X="5.25" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAA=</HashCode>
+      <FileName>UpdateProcessors\CallbackQueryProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TelegramBot.UpdateProcessors.MessagesProcessor">
+    <Position X="5.25" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAA=</HashCode>
+      <FileName>UpdateProcessors\MessagesProcessor.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
