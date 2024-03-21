@@ -38,7 +38,7 @@ internal class KeyboardsManager
         {
             inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
-                new[] { InlineKeyboardButton.WithCallbackData("Process the sample file", "SAMPLE") },
+                //new[] { InlineKeyboardButton.WithCallbackData("Process the sample file", "SAMPLE") },
                 new[] { InlineKeyboardButton.WithCallbackData("Load file from your device", "LOAD") }
             });
         }
