@@ -3,6 +3,7 @@ using DataManager.Mapping;
 using DataManager.Models;
 using Models.DataFormatProcessors;
 using Models;
+using Microsoft.Extensions.Logging;
 
 namespace TelegramBot;
 
@@ -10,16 +11,18 @@ internal class StateProcessor
 {
     private readonly FileManager _fileManager;
     private readonly DialogManager _dialogManager;
+    private readonly ILogger _logger;
 
-    public StateProcessor(BotManager botManager)
+    public StateProcessor(BotManager botManager, ILogger logger)
     {
         _fileManager = new FileManager(botManager);
         _dialogManager = new DialogManager(botManager);
+        _logger = logger;
     }
 
     public async Task ProcessRequest(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery = null)
     {
-        // Get currentState from chat info
+        // Get currentState from chat info.
         ChatStatus currentState;
         Chat chat;
         using (var db = new DatabaseContext())
@@ -66,18 +69,20 @@ internal class StateProcessor
                     await WaitSortingFilename(message, callbackQuery); break;
             }
         }
-        catch (ArgumentException)
+        catch (ArgumentException e)
         {
             await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
+            _logger.LogError("ChatId: {}; {}", chat.ChatId, e.Message);
         }
         catch (FormatException)
         {
             await _dialogManager.SendFormatExceptionMessage(chat.ChatId);
+            _logger.LogError("ChatId: {}; Incorrect file format", chat.ChatId);
         }
         catch (Exception e)
         {
             await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
-            await Console.Out.WriteLineAsync($"Error during state processing occured: {e.Message}");
+            _logger.LogError("ChatId: {}; Unkwnown command received or unhandled exception raised", chat.ChatId);
         }
     }
 
@@ -101,7 +106,7 @@ internal class StateProcessor
 
         if (message.Text == null || !message.Text.StartsWith("/"))
         {
-            throw new ArgumentException("Unknown command", message.Text);
+            throw new ArgumentException("Unknown command", nameof(message));
         }
 
         var messageText = message.Text;
@@ -110,22 +115,27 @@ internal class StateProcessor
             case "/start":
                 await _dialogManager.SendWelcomeMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_COMMAND;
+                _logger.LogInformation("ChatId: {}; Command /start received", chat.ChatId);
                 break;
             case "/help":
                 await _dialogManager.SendHelpMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_COMMAND;
+                _logger.LogInformation("ChatId: {}; Command /help received", chat.ChatId);
                 break;
             case "/selection":
                 await _dialogManager.SendSelectionFileOptionMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_OPTION;
+                _logger.LogInformation("ChatId: {}; Command /selection received", chat.ChatId);
                 break;
             case "/sorting":
                 await _dialogManager.SendSortingFileOptionMessage(chat.ChatId);
                 chat.Status = (int)ChatStatus.WAIT_FILE_SORTING_OPTION;
+                _logger.LogInformation("ChatId: {}; Command /sorting received", chat.ChatId);
                 break;
             default:
                 await _dialogManager.SendUnknownCommandMessage(chat.ChatId);
                 await Console.Out.WriteLineAsync($"Unknown message \"{messageText}\"");
+                _logger.LogError("ChatId: {}; Unknown command received", chat.ChatId);
                 break;
         }
         await db.SaveChangesAsync();
@@ -134,7 +144,7 @@ internal class StateProcessor
     private async Task WaitFileSelectionOption(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
-            await _dialogManager.SendUnknownCommandMessage(message.Chat.Id);
+            throw new ArgumentException("Not a correct selection option chosen", nameof(message));
 
         // Create new selection.
         using var db = new DatabaseContext();
@@ -144,17 +154,18 @@ internal class StateProcessor
         // File loading option.
         switch (callbackQuery!.Data)
         {
-            //case "SAMPLE":
-            //    break;
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_LOADING;
                 await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
+                _logger.LogInformation("ChatId: {}; File uploading selection option chosen", chat.ChatId);
                 break;
             default:
                 var sourceFile = db.Files.Where(s => s.FileId == int.Parse(callbackQuery.Data!)).FirstOrDefault()!;
                 selection.IdentNumberFile = sourceFile.FileId;
                 await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, description: sourceFile.Description ?? "", isNewFile: false);
                 chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
+                _logger.LogInformation("ChatId: {}; Previous file revision as a source for selection chosen", chat.ChatId);
+
                 await _dialogManager.SendFieldsKeyboard(chat.ChatId);
                 break;
         }
@@ -181,6 +192,8 @@ internal class StateProcessor
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
         chat.Status = (int)ChatStatus.CHOOSE_SELECTION_FIELDS;
         await _dialogManager.SendFieldsKeyboard(chat.ChatId);
+
+        _logger.LogInformation("ChatId: {}; File sucsessfully uploaded", chat.ChatId);
         await db.SaveChangesAsync();
         return;
     }
@@ -188,9 +201,7 @@ internal class StateProcessor
     private async Task ChooseSelectionFields(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
-        {
             throw new ArgumentException("Not a correct answer", nameof(callbackQuery));
-        }
 
         using var db = new DatabaseContext();
         var chat = db.Chats.Where(s => s.ChatId == message.Chat.Id).First();
@@ -202,6 +213,7 @@ internal class StateProcessor
             if (!db.SelectionParams.Where(s => s.Selection == selection).Any())
             {
                 await _dialogManager.AnswerNothingSelectedCallbackQuery(callbackQuery.Id);
+                _logger.LogError("ChatId: {}; Attempt to selecet without any field chosen", chat.ChatId);
                 return;
             }
             await _dialogManager.EditListedSelectedFieldsMessage(chat.ChatId, message.MessageId,
@@ -209,6 +221,7 @@ internal class StateProcessor
 
             var requestedField = DataField.GetDataField(db.SelectionParams.Where(s => s.Selection == selection && s.Value == null).First().Field);
             await _dialogManager.SendSelectingValueMessage(chat.ChatId, requestedField.Title);
+            _logger.LogInformation("ChatId: {}; Choosing fields for selection finished", chat.ChatId);
             chat.Status = (int)ChatStatus.CHOOSE_SELECTION_PARAMS;
         }
         else
@@ -220,12 +233,14 @@ internal class StateProcessor
                 var selectionParam = new SelectionParams() { Selection = selection, Field = receivedField };
                 db.SelectionParams.Add(selectionParam);
                 await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField);
+                _logger.LogInformation("ChatId: {}; Field {} marked as to select", chat.ChatId, DataField.GetDataField(receivedField).Title);
             }
             else
             {
                 var param = db.SelectionParams.Where(s => s.Selection == selection && s.Field == receivedField).First();
                 db.SelectionParams.Remove(param);
                 await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField, isUnmarked: true);
+                _logger.LogInformation("ChatId: {}; Field {} unmarked as to select", chat.ChatId, DataField.GetDataField(receivedField).Title);
             }
         }
         await db.SaveChangesAsync();
@@ -234,7 +249,7 @@ internal class StateProcessor
     private async Task ChooseSelectionParams(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery != null)
-            throw new ArgumentException("CallbackQuery does not supported in this request", nameof(message));
+            throw new ArgumentException("CallbackQuery does not supported in entering selection values", nameof(message));
 
         // Save new value
         using var db = new DatabaseContext();
@@ -242,6 +257,8 @@ internal class StateProcessor
         var selection = db.Selections.OrderByDescending(s => s.CreatedAt).First(s => s.Chat.ChatId == chat.ChatId);
         var param = db.SelectionParams.Where(s => s.Selection == selection && s.Value == null).First();
         param.Value = message.Text;
+        _logger.LogInformation("ChatId: {}; Field {} filled for selection with value {}", chat.ChatId, DataField.GetDataField(param.Field).Title,
+            message.Text);
         await db.SaveChangesAsync();
 
         // Check for the rest empty request fields.
@@ -254,6 +271,7 @@ internal class StateProcessor
         {
             await _dialogManager.SendDownloadProcessedMessage(chat.ChatId);
             chat.Status = (int)ChatStatus.WAIT_SELECTION_SAVING_TYPE;
+            _logger.LogInformation("ChatId: {}; Choosing parameters completed. Waiting for file type", chat.ChatId);
             await db.SaveChangesAsync();
         }
     }
@@ -262,7 +280,7 @@ internal class StateProcessor
     {
         if (callbackQuery == null)
         {
-            throw new ArgumentException("Not a correct answer", nameof(callbackQuery));
+            throw new ArgumentException("Not a correct answer for waiting selection file type", nameof(callbackQuery));
         }
 
         using var db = new DatabaseContext();

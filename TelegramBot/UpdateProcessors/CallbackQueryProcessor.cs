@@ -1,19 +1,15 @@
-﻿using DataManager;
-using DataManager.Mapping;
-using DataManager.Models;
-using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
-using TelegramBot.EventArguments;
+﻿using TelegramBot.EventArguments;
 
 namespace TelegramBot.UpdateProcessors;
 
 internal class CallbackQueryProcessor
 {
     private readonly StateProcessor _stateProcessor;
-    public CallbackQueryProcessor(BotManager botManager)
+
+    public CallbackQueryProcessor(BotManager botManager, StateProcessor stateProcessor)
     {
         botManager.CallbackQueryReceived += ProcessCallbackQuery;
-        _stateProcessor = new(botManager);
+        _stateProcessor = stateProcessor;
     }
 
     public async void ProcessCallbackQuery(object? sender, CallbackQueryReceivedEventArgs args)

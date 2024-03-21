@@ -22,8 +22,6 @@ internal class BotManager
 
     public TelegramBotClient Client => _client;
 
-
-
     private void StartReceiving()
     {
         using var cts = new CancellationTokenSource();
@@ -35,7 +33,6 @@ internal class BotManager
                                    AllowedUpdates = Array.Empty<UpdateType>()
                                },
                                cancellationToken: cts.Token);
-
     }
 
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -44,7 +41,7 @@ internal class BotManager
         {
             UpdateType.Message => OnMessageReceive(update.Message!),
             UpdateType.CallbackQuery => OnCallbackQuery( update.CallbackQuery!),
-            _ => UnknownUpdateHandlerAsync(update)
+            _ => UnknownUpdateHandlerAsync()
         };
 
         try
@@ -59,21 +56,18 @@ internal class BotManager
 
     private Task OnCallbackQuery(CallbackQuery callbackQuery)
     {
-        Console.WriteLine("Callback query received");
         CallbackQueryReceived?.Invoke(this, new CallbackQueryReceivedEventArgs(callbackQuery));
         return Task.CompletedTask;        
     }
 
     private Task OnMessageReceive(Message message)
     {
-        Console.WriteLine("Message received");
         MessageReceived?.Invoke(this, new MessageReceivedEventArgs(message));
         return Task.CompletedTask;
     }
 
-    private Task UnknownUpdateHandlerAsync(Update update)
+    private Task UnknownUpdateHandlerAsync()
     {
-        Console.WriteLine($"Unknown update type: {update.Type}");
         return Task.CompletedTask;
     }
 

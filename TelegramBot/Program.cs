@@ -1,43 +1,46 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Models;
-using Models.DataFormatProcessors;
-using System.Threading.Channels;
-using Telegram.Bot.Polling;
+using Serilog;
 using TelegramBot.UpdateProcessors;
 
 namespace TelegramBot
 {
     internal class Program
     {
-        async static Task Main()
+        private static void Main()
         {
             // Importing access token
-            //var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
-            // DotEnv.Load(dotenv);
-            // var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN
+            var dotenv = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", ".env");
+            DotEnv.Load(dotenv);
+            var botToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "{UNKNOWN_ACCESS_TOKEN}";
 
+            // Logging init
+            Log.Logger = new LoggerConfiguration()
+              .MinimumLevel.Debug()
+              .WriteTo.File(Path.Combine("..", "..", "..", "var", "bot.log"))
+              .CreateLogger();
 
-            var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
+            var services = new ServiceCollection();
+            services.AddLogging(loggerBuilder => loggerBuilder.AddConsole());
+            services.AddLogging(loggerBuilder => loggerBuilder.AddSerilog(dispose: true));
+            var serviceProvider = services.BuildServiceProvider();
 
+            var logger = serviceProvider.GetService<ILogger<Program>>();
 
-            //Creating bot
-
+            //Creating bot.
             var botManager = new BotManager(botToken);
-            var messagesProcessor = new MessagesProcessor(botManager);
-            var callbackQueryProcessor = new CallbackQueryProcessor(botManager);
+            logger!.LogInformation("Telegram bot managere created");
+
+            // Creating bot sercices for processing messages from user and manage user's states.
+            var stateProcessor = new StateProcessor(botManager, logger!);
+            var messagesProcessor = new MessagesProcessor(botManager, stateProcessor);
+            var callbackQueryProcessor = new CallbackQueryProcessor(botManager, stateProcessor);
+            logger!.LogInformation("Messages and CallbackQueeries processsors created");
 
             Console.ReadLine();
-
-            //FileStream fs = new FileStream("D:\\Downloads\\attraction-TC (1).csv", FileMode.Open);
-            //var res = new CSVProcessing().Read(fs);
-            //foreach (var item in new Selector(res, new[] { ("Location", "ТЦ «АВИАПАРК»"), ("Name", "ПОЖАРНАЯ МАШИНА") }).Select())
-            //{
-            //    await Console.Out.WriteLineAsync($"{item.Name} {item.Location}");
-            //}
-
-
+            
+            serviceProvider.Dispose();
+            logger!.LogInformation("Resources disposed");
         }
     }
 }

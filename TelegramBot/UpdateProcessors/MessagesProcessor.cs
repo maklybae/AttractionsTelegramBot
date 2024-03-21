@@ -8,10 +8,10 @@ internal class MessagesProcessor
 {
     private readonly StateProcessor _stateProcessor;
 
-    public MessagesProcessor(BotManager botManager)
+    public MessagesProcessor(BotManager botManager, StateProcessor stateProcessor)
     {
         botManager.MessageReceived += ProcessReceivevdMessage;
-        _stateProcessor = new StateProcessor(botManager);
+        _stateProcessor = stateProcessor;
     }
 
     public async void ProcessReceivevdMessage(object? sender, MessageReceivedEventArgs args)
