@@ -43,7 +43,10 @@ public class DatabaseContext : DbContext
     /// <summary>
     /// Default db context constructor.
     /// </summary>
-    public DatabaseContext() { }
+    public DatabaseContext()
+    {
+        Database.EnsureCreated();
+    }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
         optionsBuilder.UseNpgsql(@"Server=db;Username=postgres;Password=postgres;Database=postgres");
