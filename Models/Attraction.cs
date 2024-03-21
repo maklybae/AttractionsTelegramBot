@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Models;
 
+/// <summary>
+/// Represents an attraction entity.
+/// </summary>
 [Delimiter(";")]
 [Quote('"')]
 public class Attraction
@@ -45,47 +48,79 @@ public class Attraction
         _geoarea = geoarea;
     }
 
-
+    /// <summary>
+    /// Gets or sets the name of the attraction.
+    /// </summary>
     [Name("Name")]
     [JsonPropertyName("Name")]
     public string Name { get { return _name; } set { _name = value; }  }
 
+    /// <summary>
+    /// Gets or sets the photo URL of the attraction.
+    /// </summary>
     [Name("Photo")]
     [JsonPropertyName("Photo")]
     public string Photo { get { return _photo; } set { _photo = value; } }
 
+    /// <summary>
+    /// Gets or sets the administrative area of the attraction.
+    /// </summary>
     [Name("AdmArea")]
     [JsonPropertyName("AdmArea")]
     public string AdmArea { get { return _admArea; } set{ _admArea = value; } }
 
+    /// <summary>
+    /// Gets or sets the district of the attraction.
+    /// </summary>
     [Name("District")]
     [JsonPropertyName("District")]
     public string District { get { return _district; } set{ _district = value; } }
 
+    /// <summary>
+    /// Gets or sets the location of the attraction.
+    /// </summary>
     [Name("Location")]
     [JsonPropertyName("Location")]
     public string Location { get { return _location; } set { _location = value; } }
 
+    /// <summary>
+    /// Gets or sets the registration number of the attraction.
+    /// </summary>
     [Name("RegistrationNumber")]
     [JsonPropertyName("RegistrationNumber")]
     public string RegistrationNumber { get { return _registrationNumber; } set { _registrationNumber = value; } }
 
+    /// <summary>
+    /// Gets or sets the state of the attraction.
+    /// </summary>
     [Name("State")]
     [JsonPropertyName("State")]
     public string State { get { return _state; } set { _state = value; } }
 
+    /// <summary>
+    /// Gets or sets the type of location of the attraction.
+    /// </summary>
     [Name("LocationType")]
     [JsonPropertyName("LocationType")]
     public string LocationType { get {  return _locationType; } init { _locationType = value; } }
 
+    /// <summary>
+    /// Gets or sets the global ID of the attraction.
+    /// </summary>
     [Name("global_id")]
     [JsonPropertyName("global_id")]
     public long GlobalId { get { return _globalId; } init { _globalId = value;} }
 
+    /// <summary>
+    /// Gets or sets the geodata center of the attraction.
+    /// </summary>
     [Name("geodata_center"), Optional]
     [JsonPropertyName("geodata_center")]
     public string GeodataCenter { get { return _geodataCenter; } set { _geodataCenter = value; } }
 
+    /// <summary>
+    /// Gets or sets the geo area of the attraction.
+    /// </summary>
     [Name("geoarea"), Optional]
     [JsonPropertyName("geoarea")]
     public string GeoArea {  get { return _geoarea; } set { _geoarea = value; } }

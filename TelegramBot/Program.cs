@@ -5,13 +5,19 @@ using TelegramBot.UpdateProcessors;
 
 namespace TelegramBot
 {
+    /// <summary>
+    /// Main entry point for the Telegram bot application.
+    /// </summary>
     internal class Program
     {
+
+        private const string BotToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
+
+        /// <summary>
+        /// Main method that initializes and runs the Telegram bot application.
+        /// </summary>
         private static void Main()
         {
-            // Importing access token
-            var botToken = "7038009512:AAFtlfzLuU1Gf1HQoGwp1RehA5ZbfBFHVuA";
-
             // Logging init
             Log.Logger = new LoggerConfiguration()
               .MinimumLevel.Debug()
@@ -26,7 +32,7 @@ namespace TelegramBot
             var logger = serviceProvider.GetService<ILogger<Program>>();
 
             //Creating bot.
-            var botManager = new BotManager(botToken);
+            var botManager = new BotManager(BotToken);
             logger!.LogInformation("Telegram bot managere created");
 
             // Creating bot sercices for processing messages from user and manage user's states.

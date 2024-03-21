@@ -1,16 +1,28 @@
 ﻿namespace Models;
 
+/// <summary>
+/// Represents a sorter for sorting attractions based on sorting parameters.
+/// </summary>
 public class Sorter
 {
     private IEnumerable<Attraction> _attractions;
     private IEnumerable<(string field, bool isDescending)> _sortingParams;
 
+    /// <summary>
+    /// Initializes a new instance of the Sorter class with the specified attractions and sorting parameters.
+    /// </summary>
+    /// <param name="attractions">The collection of attractions to sort.</param>
+    /// <param name="sortingParams">The collection of sorting parameters to apply.</param>
     public Sorter(IEnumerable<Attraction> attractions, IEnumerable<(string field, bool isDesecnding)> sortingParams)
     {
         _attractions = attractions;
         _sortingParams = sortingParams;
     }
 
+    /// <summary>
+    /// Sorts the attractions based on the specified sorting parameters.
+    /// </summary>
+    /// <returns>The sorted collection of attractions.</returns>
     public IEnumerable<Attraction> Sort()
     {
         var enumerator = _sortingParams.GetEnumerator();

@@ -4,8 +4,14 @@ using System.Globalization;
 
 namespace Models.DataFormatProcessors;
 
+/// <summary>
+/// Provides functionality to read from and write to CSV files using CsvHelper library.
+/// </summary>
 public class CSVProcessing
 {
+    /// <summary>
+    /// Initializes a new instance of the CSVProcessing class.
+    /// </summary>
     public CSVProcessing() { }
 
     private readonly static CsvConfiguration s_config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -14,6 +20,10 @@ public class CSVProcessing
         Quote = '"',
     };
 
+    /// <summary>
+    /// Writes the second header row for CSV files.
+    /// </summary>
+    /// <param name="csv">The CsvWriter instance to write to.</param>
     private void WriteSecondHeader(CsvWriter csv)
     {
         csv.NextRecord();
@@ -31,6 +41,11 @@ public class CSVProcessing
         csv.NextRecord();
     }
 
+    /// <summary>
+    /// Reads CSV data from the input stream and returns a list of Attraction records.
+    /// </summary>
+    /// <param name="inputStream">The input stream containing CSV data.</param>
+    /// <returns>A list of Attraction records read from the CSV data.</returns>
     public List<Attraction> Read(Stream inputStream)
     {
         inputStream.Position = 0;
@@ -42,14 +57,17 @@ public class CSVProcessing
         if (!csv.ReadHeader())
             throw new ReaderException(new CsvContext(csv));
         csv.Read();
-        // TODO: Validation of header rows
 
         return csv.GetRecords<Attraction>().ToList();
     }
 
+    /// <summary>
+    /// Writes the provided collection of Attraction records to a CSV format in a MemoryStream and returns the stream.
+    /// </summary>
+    /// <param name="records">The collection of Attraction records to write to CSV.</param>
+    /// <returns>A MemoryStream containing the CSV data.</returns>
     public MemoryStream Write(IEnumerable<Attraction> records)
     {
-        // TODO: Close stream
         var stream = new MemoryStream();
 
         var writer = new StreamWriter(stream, leaveOpen: true);

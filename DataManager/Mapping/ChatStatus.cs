@@ -1,5 +1,8 @@
 ﻿namespace DataManager.Mapping;
 
+/// <summary>
+/// Represents various states or statuses related to chat interactions.
+/// </summary>
 public enum ChatStatus
 {
     WAIT_COMMAND,

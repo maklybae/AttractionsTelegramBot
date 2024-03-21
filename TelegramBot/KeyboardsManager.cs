@@ -1,12 +1,19 @@
 ﻿using DataManager;
 using DataManager.Mapping;
-using DataManager.Models;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace TelegramBot;
 
+/// <summary>
+/// Manages the generation of inline keyboards for the Telegram bot.
+/// </summary>
 internal class KeyboardsManager
 {
+    /// <summary>
+    /// Generates an inline keyboard with recently processed files and options to load files.
+    /// </summary>
+    /// <param name="chatId">The ID of the chat.</param>
+    /// <returns>An inline keyboard markup.</returns>
     public InlineKeyboardMarkup GenerateInlineKeyboardFiles(long chatId)
     {
         InlineKeyboardMarkup inlineKeyboardMarkup;
@@ -39,6 +46,10 @@ internal class KeyboardsManager
         return inlineKeyboardMarkup;
     }
 
+    /// <summary>
+    /// Generates an inline keyboard with fields for processing requests.
+    /// </summary>
+    /// <returns>An inline keyboard markup.</returns>
     public InlineKeyboardMarkup GenerateFieldsKeyboard() =>
         new InlineKeyboardMarkup(new[]
         {
@@ -66,6 +77,10 @@ internal class KeyboardsManager
             }
         });
 
+    /// <summary>
+    /// Generates an inline keyboard for selecting file formats.
+    /// </summary>
+    /// <returns>An inline keyboard markup.</returns>
     public InlineKeyboardMarkup GenerateFileFormatKeyboard() =>
         new InlineKeyboardMarkup(new[]
         {
@@ -73,6 +88,10 @@ internal class KeyboardsManager
             InlineKeyboardButton.WithCallbackData("CSV", "CSV"),
         });
 
+    /// <summary>
+    /// Generates an inline keyboard for selecting sorting order.
+    /// </summary>
+    /// <returns>An inline keyboard markup.</returns>
     public InlineKeyboardMarkup GenerateSortingOrderKeyboard() =>
         new InlineKeyboardMarkup(new[]
         {

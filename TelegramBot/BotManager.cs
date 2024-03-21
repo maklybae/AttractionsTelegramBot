@@ -7,19 +7,36 @@ using TelegramBot.EventArguments;
 
 namespace TelegramBot;
 
+/// <summary>
+/// Manages the Telegram bot instance and handles incoming updates.
+/// </summary>
 internal class BotManager
 {
     private readonly TelegramBotClient _client;
 
+    /// <summary>
+    /// Event raised when a message is received.
+    /// </summary>
     public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+
+    /// <summary>
+    /// Event raised when a callback query is received.
+    /// </summary>
     public event EventHandler<CallbackQueryReceivedEventArgs>? CallbackQueryReceived;
 
+    /// <summary>
+    /// Initializes a new instance of the BotManager class with the specified access token.
+    /// </summary>
+    /// <param name="accessToken">The Telegram bot API access token.</param>
     public BotManager(string accessToken)
     {
         _client = new(accessToken);
         StartReceiving();
     }
 
+    /// <summary>
+    /// Gets the Telegram bot client instance.
+    /// </summary>
     public TelegramBotClient Client => _client;
 
     private void StartReceiving()
@@ -71,6 +88,13 @@ internal class BotManager
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Handles errors that occur during polling.
+    /// </summary>
+    /// <param name="botClient">The Telegram bot client.</param>
+    /// <param name="exception">The exception that occurred.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous error handling process.</returns>
     public Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
     {
         var ErrorMessage = exception switch

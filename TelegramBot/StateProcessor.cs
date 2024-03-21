@@ -7,12 +7,20 @@ using Microsoft.Extensions.Logging;
 
 namespace TelegramBot;
 
+/// <summary>
+/// Class responsible for processing different states and commands in the Telegram bot.
+/// </summary>
 internal class StateProcessor
 {
     private readonly FileManager _fileManager;
     private readonly DialogManager _dialogManager;
     private readonly ILogger _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StateProcessor"/> class.
+    /// </summary>
+    /// <param name="botManager">The bot manager instance.</param>
+    /// <param name="logger">The logger instance.</param>
     public StateProcessor(BotManager botManager, ILogger logger)
     {
         _fileManager = new FileManager(botManager);
@@ -20,6 +28,12 @@ internal class StateProcessor
         _logger = logger;
     }
 
+    /// <summary>
+    /// Processes the request based on the current chat state and the received message or callback query.
+    /// </summary>
+    /// <param name="message">The message received from the user.</param>
+    /// <param name="callbackQuery">The callback query received from the user.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ProcessRequest(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery = null)
     {
         // Get currentState from chat info.
@@ -86,6 +100,8 @@ internal class StateProcessor
         }
     }
 
+    // Below are methods to process user's states and send appropriate messages.
+
     private async Task<bool> TryCommand(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         try
@@ -99,6 +115,8 @@ internal class StateProcessor
         }
     }
 
+    // WAIT_COMMAND state.
+
     private async Task WaitCommand(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         using var db = new DatabaseContext();
@@ -109,6 +127,7 @@ internal class StateProcessor
             throw new ArgumentException("Unknown command", nameof(message));
         }
 
+        // Process commands.
         var messageText = message.Text;
         switch (messageText)
         {
@@ -139,7 +158,10 @@ internal class StateProcessor
         }
         await db.SaveChangesAsync();
     }
-
+    
+    /// <summary>
+    /// WAIT_FILE_SELECTION_OPTION state.
+    /// </summary>
     private async Task WaitFileSelectionOption(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -153,11 +175,13 @@ internal class StateProcessor
         // File loading option.
         switch (callbackQuery!.Data)
         {
+            // Loading file from local device.
             case "LOAD":
                 chat.Status = (int)ChatStatus.WAIT_FILE_SELECTION_LOADING;
                 await _dialogManager.EditFileLoadingMessage(chat.ChatId, message.MessageId, isNewFile: true);
                 _logger.LogInformation("ChatId: {0}; File uploading selection option chosen", chat.ChatId);
                 break;
+            // File from database.
             default:
                 var sourceFile = db.Files.Where(s => s.FileId == int.Parse(callbackQuery.Data!)).FirstOrDefault()!;
                 selection.IdentNumberFile = sourceFile.FileId;
@@ -174,6 +198,9 @@ internal class StateProcessor
         await db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// WAIT_FILE_SELECTION_LOADING
+    /// </summary>
     private async Task WaitFileSelectionLoading(Telegram.Bot.Types.Message message)
     {
         if (message.Document == null)
@@ -197,6 +224,9 @@ internal class StateProcessor
         return;
     }
 
+    /// <summary>
+    /// CHOOSE_SELECTION_FIELDS state.
+    /// </summary>
     private async Task ChooseSelectionFields(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -229,6 +259,7 @@ internal class StateProcessor
             int receivedField = int.Parse(recievedData!);
             if (!db.SelectionParams.Where(s => s.Selection == selection && s.Field == receivedField).Any())
             {
+                // Mark.
                 var selectionParam = new SelectionParams() { Selection = selection, Field = receivedField };
                 db.SelectionParams.Add(selectionParam);
                 await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField);
@@ -236,6 +267,7 @@ internal class StateProcessor
             }
             else
             {
+                // Unmark.
                 var param = db.SelectionParams.Where(s => s.Selection == selection && s.Field == receivedField).First();
                 db.SelectionParams.Remove(param);
                 await _dialogManager.AnswerFieldSelectedCallbackQuery(callbackQuery.Id, receivedField, isUnmarked: true);
@@ -245,6 +277,9 @@ internal class StateProcessor
         await db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// CHOOSE_SELECTION_PARAMS state.
+    /// </summary>
     private async Task ChooseSelectionParams(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery != null)
@@ -275,6 +310,9 @@ internal class StateProcessor
         }
     }
 
+    /// <summary>
+    /// WAIT_SELECTION_FILE_TYPE state.
+    /// </summary>
     private async Task WaitSelectionFileType(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -296,6 +334,9 @@ internal class StateProcessor
         await _dialogManager.SendFileNameMessage(chat.ChatId);
     }
 
+    /// <summary>
+    /// WAIT_SELECTION_FILENAME state.
+    /// </summary>
     private async Task WaitSelectionFileName(Telegram.Bot.Types.Message message)
     {
         if (message.Text == null)
@@ -355,6 +396,10 @@ internal class StateProcessor
     // Sorting
     //
 
+
+    /// <summary>
+    /// WAIT_FILE_SORTING_OPTION state.
+    /// </summary>
     private async Task WaitFileSortingOption(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -385,6 +430,9 @@ internal class StateProcessor
         await db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// WAIT_FILE_SORTING_LOADING state.
+    /// </summary>
     private async Task WaitFileSortingLoading(Telegram.Bot.Types.Message message)
     {
         if (message.Document == null)
@@ -406,6 +454,9 @@ internal class StateProcessor
         return;
     }
 
+    /// <summary>
+    /// CHOOSE_SORTING_FIELD state.
+    /// </summary>
     private async Task ChooseSortingFields(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -455,6 +506,9 @@ internal class StateProcessor
         await db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// CHOOSE_SORTING_PARAMS state.
+    /// </summary>
     private async Task ChooseSortingParams(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -487,6 +541,9 @@ internal class StateProcessor
         }
     }
 
+    /// <summary>
+    /// WAIT_SORTING_SAVING_TYPE
+    /// </summary>
     private async Task WaitSortingSavingType(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (callbackQuery == null)
@@ -508,6 +565,9 @@ internal class StateProcessor
         await _dialogManager.SendFileNameMessage(chat.ChatId);
     }
 
+    /// <summary>
+    /// WAIT_SORTING_FILENAME state.
+    /// </summary>
     private async Task WaitSortingFilename(Telegram.Bot.Types.Message message, Telegram.Bot.Types.CallbackQuery? callbackQuery)
     {
         if (message.Text == null)
